@@ -20,7 +20,7 @@ function toVectorLiteral(vec: number[]) {
 
 // Raw SQL because pgvector's <=> distance operator and the vector column
 // itself aren't reachable through Prisma's normal query builder (see the
-// `Unsupported("vector(1536)")` field in schema.prisma). Enum/`name`-typed
+// `Unsupported("vector(768)")` field in schema.prisma). Enum/`name`-typed
 // columns are cast to ::text — the Neon driver adapter's raw-query
 // deserializer doesn't know how to map custom Postgres types otherwise.
 export async function searchHistory(question: string, opts: { assetId?: string; topN?: number } = {}): Promise<HistorySource[]> {

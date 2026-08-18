@@ -1,7 +1,9 @@
 import { getCurrentUser } from "@/lib/session";
 import { getEquipmentPickerList } from "@/lib/data/equipment";
+import { isRagConfigured } from "@/lib/rag/client";
 import { Header } from "@/components/header";
 import { PageNav } from "@/components/page-nav";
+import { AiHistoryWidget } from "@/components/ai-history-widget";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [user, equipmentList] = await Promise.all([getCurrentUser(), getEquipmentPickerList()]);
@@ -15,6 +17,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <PageNav canLogIssue={canLogIssue} equipmentList={equipmentList} />
         {children}
       </main>
+      {isRagConfigured() && <AiHistoryWidget />}
     </div>
   );
 }

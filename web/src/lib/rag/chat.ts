@@ -3,9 +3,10 @@ import type { HistorySource } from "./search";
 
 export async function answerFromHistory(question: string, sources: HistorySource[]): Promise<string> {
   if (sources.length === 0) {
-    return "No related history found for this asset.";
+    return "No related history found.";
   }
 
+  const spansMultipleAssets = new Set(sources.map((s) => s.assetId)).size > 1;
   const ai = getGemini();
   const context = sources
     .map((s, i) => {
@@ -17,6 +18,10 @@ Component: ${s.component ?? "not classified"}`;
     })
     .join("\n\n");
 
+  const citationInstruction = spansMultipleAssets
+    ? "Every factual claim must cite its source record's asset ID and WO number in parentheses, e.g. (CHLR003, WO-116200) — since these records span multiple assets, the asset ID is required so the reader knows which equipment each fact is about."
+    : "Every factual claim must cite its source record's WO number in parentheses, e.g. (WO-116200).";
+
   let res;
   try {
     res = await ai.models.generateContent({
@@ -25,7 +30,7 @@ Component: ${s.component ?? "not classified"}`;
       config: {
         temperature: 0.2,
         systemInstruction:
-          "You are a maintenance history assistant for a university utilities and energy services team. Answer the technician's question using ONLY the numbered records provided below — never use outside knowledge about the equipment. Every factual claim must cite its source record's WO number in parentheses, e.g. (WO-116200). If none of the provided records are actually relevant to the question, say so plainly instead of guessing or stretching a weak match.",
+          `You are a maintenance history assistant for a university utilities and energy services team. Answer the technician's question using ONLY the numbered records provided below — never use outside knowledge about the equipment. ${citationInstruction} If none of the provided records are actually relevant to the question, say so plainly instead of guessing or stretching a weak match.`,
       },
     });
   } catch (e) {

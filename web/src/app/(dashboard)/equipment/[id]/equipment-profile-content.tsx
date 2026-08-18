@@ -2,12 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, User, ExternalLink, Clock, Box, Search, Pencil, Percent, Wrench, Sparkles } from "lucide-react";
+import { ChevronRight, User, ExternalLink, Clock, Box, Search, Pencil, Percent, Wrench } from "lucide-react";
 import { StatusBadge, CriticalityBadge, KpiCard, KpiGrid, InfoCard, EmptyState } from "@/components/ui";
 import { EditEquipmentModal } from "@/components/edit-equipment-modal";
 import { EditIssueModal } from "@/components/edit-issue-modal";
 import { ResolveIssueModal } from "@/components/resolve-issue-modal";
-import { AskHistoryPanel } from "@/components/ask-history-panel";
 import { criticalityTier } from "@/lib/theme";
 import { assetAvailabilityPct } from "@/lib/data/kpis";
 import type { getEquipmentById } from "@/lib/data/equipment";
@@ -28,7 +27,6 @@ const TABS = [
   { key: "updates", label: "Updates" },
   { key: "maintenance", label: "Maintenance" },
   { key: "documents", label: "Documents" },
-  { key: "ai-history", label: "AI history" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
 
@@ -120,7 +118,6 @@ export function EquipmentProfileContent({
             onClick={() => setTab(t.key)}
             className={`flex items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition ${tab === t.key ? "border-maroon-700 text-maroon-800" : "border-transparent text-slate-500 hover:text-slate-700"}`}
           >
-            {t.key === "ai-history" && <Sparkles className="h-3.5 w-3.5" />}
             {t.label}
           </button>
         ))}
@@ -312,8 +309,6 @@ export function EquipmentProfileContent({
           )}
         </div>
       )}
-
-      {tab === "ai-history" && <AskHistoryPanel assetId={asset.id} />}
     </div>
   );
 }
