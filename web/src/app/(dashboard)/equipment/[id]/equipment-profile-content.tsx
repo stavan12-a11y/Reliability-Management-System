@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronRight, User, ExternalLink, Clock, Box, Search, Pencil, Percent, Wrench } from "lucide-react";
-import { StatusBadge, CriticalityBadge, KpiCard, KpiGrid, InfoCard, EmptyState } from "@/components/ui";
+import { StatusBadge, KpiCard, KpiGrid, InfoCard, EmptyState } from "@/components/ui";
 import { EditEquipmentModal } from "@/components/edit-equipment-modal";
 import { EditIssueModal } from "@/components/edit-issue-modal";
 import { ResolveIssueModal } from "@/components/resolve-issue-modal";
@@ -92,16 +92,18 @@ export function EquipmentProfileContent({
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-mono text-xl font-bold text-slate-900">{asset.id}</h2>
+          <div className="flex items-center gap-2.5">
+            <h2 className="font-mono text-xl font-bold text-slate-900">{asset.id}</h2>
+            <span className={`text-sm font-semibold ${tier.text}`} title="Based on likelihood and consequence of failure">
+              Criticality: {tier.label}
+            </span>
+          </div>
           <p className="text-sm text-slate-500">
             {asset.assetNumber} · {asset.manufacturer} {asset.model} · {asset.class}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={asset.status} />
-          <span title="Based on likelihood and consequence of failure">
-            <CriticalityBadge tier={tier} />
-          </span>
           {canManage && (
             <button type="button" onClick={() => setShowEditEquipment(true)} title="Edit equipment details" className="btn-secondary px-2.5 py-1.5 text-xs">
               <Pencil className="h-3 w-3" /> Edit
