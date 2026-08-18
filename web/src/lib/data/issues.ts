@@ -1,10 +1,11 @@
 import { prisma } from "@/lib/prisma";
 
-function withOverdue<T extends { returnEta: Date | null }>(issue: T) {
+function withOverdue<T extends { returnEta: Date | null; asset?: { downtimeDays90d: unknown } }>(issue: T) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const overdue = !!issue.returnEta && issue.returnEta < today;
-  return { ...issue, overdue };
+  const asset = issue.asset ? { ...issue.asset, downtimeDays90d: Number(issue.asset.downtimeDays90d) } : issue.asset;
+  return { ...issue, overdue, ...(issue.asset ? { asset } : {}) };
 }
 
 export async function getActiveIssues() {

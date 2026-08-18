@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 
-// Next.js 16 renamed this file convention to proxy.ts / export "proxy", but
-// middleware.ts is still supported (deprecated, not removed) and is what
-// Auth.js v5's session-checking pattern is documented against today.
+// Next.js 16 renamed the middleware.ts convention to proxy.ts, and the
+// proxy runtime is always nodejs (not configurable) — which is what lets
+// this import @/auth (Prisma + bcryptjs) directly, unlike the old edge
+// default for middleware.ts.
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const isLoginPage = req.nextUrl.pathname.startsWith("/login");

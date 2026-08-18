@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "ues-dashboard",
+      "runtimeExecutable": "C:\\Users\\stuti\\Downloads\\ues-reliability-dashboard\\run-dev.cmd",
+      "runtimeArgs": [],
+      "port": 3000
+    }
+  ]
+}
