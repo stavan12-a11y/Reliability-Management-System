@@ -207,10 +207,10 @@ model IssueHistory {
   woNumber     String?
   resolvedById String?
   createdAt    DateTime                 @default(now())
-  // OpenAI text-embedding-3-small — 1536 dims. Unsupported: Prisma has no
-  // native pgvector type, so this column is only reachable via $queryRaw /
-  // $executeRaw (see lib/rag/embeddings.ts).
-  embedding    Unsupported("vector(1536)")?
+  // Gemini gemini-embedding-001, truncated to 768 dims. Unsupported: Prisma
+  // has no native pgvector type, so this column is only reachable via
+  // $queryRaw / $executeRaw (see lib/rag/embed.ts).
+  embedding    Unsupported("vector(768)")?
 
   asset      Equipment @relation(fields: [assetId], references: [id])
   resolvedBy User?     @relation("HistoryResolvedBy", fields: [resolvedById], references: [id])
@@ -230,7 +230,7 @@ model MaintenanceLog {
   woNumber    String?
   createdById String?
   createdAt   DateTime        @default(now())
-  embedding   Unsupported("vector(1536)")?
+  embedding   Unsupported("vector(768)")?
 
   asset     Equipment @relation(fields: [assetId], references: [id])
   createdBy User?     @relation(fields: [createdById], references: [id])

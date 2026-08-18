@@ -1,4 +1,4 @@
-import { getOpenAI, CHAT_MODEL } from "./client";
+import { getGemini, CHAT_MODEL } from "./client";
 import type { HistorySource } from "./search";
 
 export async function answerFromHistory(question: string, sources: HistorySource[]): Promise<string> {
@@ -6,7 +6,7 @@ export async function answerFromHistory(question: string, sources: HistorySource
     return "No related history found for this asset.";
   }
 
-  const openai = getOpenAI();
+  const ai = getGemini();
   const context = sources
     .map((s, i) => {
       const label = s.kind === "issue_history" ? "Resolved issue" : "Maintenance record";
@@ -17,21 +17,30 @@ Component: ${s.component ?? "not classified"}`;
     })
     .join("\n\n");
 
-  const res = await openai.chat.completions.create({
-    model: CHAT_MODEL,
-    temperature: 0.2,
-    messages: [
-      {
-        role: "system",
-        content:
+  let res;
+  try {
+    res = await ai.models.generateContent({
+      model: CHAT_MODEL,
+      contents: `Records:\n\n${context}\n\nQuestion: ${question}`,
+      config: {
+        temperature: 0.2,
+        systemInstruction:
           "You are a maintenance history assistant for a university utilities and energy services team. Answer the technician's question using ONLY the numbered records provided below — never use outside knowledge about the equipment. Every factual claim must cite its source record's WO number in parentheses, e.g. (WO-116200). If none of the provided records are actually relevant to the question, say so plainly instead of guessing or stretching a weak match.",
       },
-      {
-        role: "user",
-        content: `Records:\n\n${context}\n\nQuestion: ${question}`,
-      },
-    ],
-  });
+    });
+  } catch (e) {
+    // The Gemini SDK throws with the raw provider error body as .message
+    // (often literal JSON) — surface a plain-English message instead of
+    // leaking that to the UI.
+    const raw = e instanceof Error ? e.message : "";
+    if (raw.includes("UNAVAILABLE") || raw.includes("503")) {
+      throw new Error("The AI model is temporarily overloaded (Gemini free tier). Please try asking again in a moment.");
+    }
+    if (raw.includes("RESOURCE_EXHAUSTED") || raw.includes("429")) {
+      throw new Error("Hit the Gemini free-tier rate limit. Please wait a minute and try again.");
+    }
+    throw new Error("The AI model failed to respond. Please try again.");
+  }
 
-  return res.choices[0]?.message?.content?.trim() || "The model did not return an answer.";
+  return res.text?.trim() || "The model did not return an answer.";
 }

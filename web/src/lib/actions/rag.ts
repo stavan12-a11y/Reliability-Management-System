@@ -13,7 +13,7 @@ export async function askAssetHistory(assetId: string, question: string): Promis
   if (!user) return { answer: "", sources: [], error: "You must be signed in." };
   if (!question.trim()) return { answer: "", sources: [], error: "Ask a question first." };
   if (!isRagConfigured()) {
-    return { answer: "", sources: [], error: "AI history lookup isn't configured yet — an administrator needs to add an OPENAI_API_KEY." };
+    return { answer: "", sources: [], error: "AI history lookup isn't configured yet — an administrator needs to add a GEMINI_API_KEY." };
   }
 
   try {

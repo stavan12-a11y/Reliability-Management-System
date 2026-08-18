@@ -1,10 +1,15 @@
 import { prisma } from "@/lib/prisma";
-import { getOpenAI, EMBEDDING_MODEL } from "./client";
+import { getGemini, EMBEDDING_MODEL, EMBEDDING_DIMENSIONS } from "./client";
 
 export async function embedText(text: string): Promise<number[]> {
-  const openai = getOpenAI();
-  const res = await openai.embeddings.create({ model: EMBEDDING_MODEL, input: text });
-  return res.data[0].embedding;
+  const ai = getGemini();
+  const res = await ai.models.embedContent({ model: EMBEDDING_MODEL, contents: text, config: { outputDimensionality: EMBEDDING_DIMENSIONS } });
+  const values = res.embeddings?.[0]?.values;
+  if (!values) throw new Error("Gemini returned no embedding values.");
+  if (values.length !== EMBEDDING_DIMENSIONS) {
+    throw new Error(`Expected a ${EMBEDDING_DIMENSIONS}-dim embedding, got ${values.length}.`);
+  }
+  return values;
 }
 
 function toVectorLiteral(vec: number[]) {
