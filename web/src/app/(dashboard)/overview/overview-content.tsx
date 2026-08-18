@@ -16,12 +16,6 @@ function availabilityAccent(pct: number) {
   return { accent: "text-red-600", iconBg: "bg-red-50" };
 }
 
-function availabilityTextColor(pct: number) {
-  if (pct >= 97) return "text-emerald-600";
-  if (pct >= 90) return "text-amber-600";
-  return "text-red-600";
-}
-
 export function OverviewContent({
   counts,
   fleetStats,
@@ -106,10 +100,18 @@ export function OverviewContent({
                   <ChevronRight className="h-4 w-4 text-slate-300" />
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className={`text-xl font-bold ${availabilityTextColor(loc.availabilityPct)}`}>{loc.availabilityPct}%</span>
                   <span className="text-xs text-slate-400">
                     {loc.total} asset{loc.total !== 1 ? "s" : ""}
                   </span>
+                  {loc.activeIssues > 0 ? (
+                    <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 ring-1 ring-inset ring-red-600/20">
+                      {loc.activeIssues} active issue{loc.activeIssues !== 1 ? "s" : ""}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                      All normal
+                    </span>
+                  )}
                 </div>
                 <div className="flex gap-3 text-xs text-slate-500">
                   <span>
@@ -132,7 +134,7 @@ export function OverviewContent({
           {issues.length === 0 ? (
             <EmptyState icon={CheckCircle2} title="All equipment available" detail="No active issues right now." />
           ) : (
-            <div className="card max-h-[600px] divide-y divide-slate-100 overflow-y-auto">
+            <div className="card divide-y divide-slate-100 overflow-y-auto" style={{ maxHeight: "calc(100vh - 180px)" }}>
               {issues.map((issue) => (
                 <div key={issue.id} onClick={() => router.push(`/equipment/${issue.assetId}`)} className="cursor-pointer px-3.5 py-3 hover:bg-slate-50">
                   <div className="mb-0.5 flex items-center justify-between gap-2">

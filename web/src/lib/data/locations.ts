@@ -15,7 +15,7 @@ export async function getAllSystems() {
 
 // Per-location rollup for the location cards on the Overview page.
 export async function getLocationSummaries() {
-  const [locations, equipmentRaw, history] = await Promise.all([
+  const [locations, equipmentRaw, history, issues] = await Promise.all([
     prisma.location.findMany({ orderBy: { id: "asc" } }),
     prisma.equipment.findMany({
       where: { deletedAt: null },
@@ -24,6 +24,10 @@ export async function getLocationSummaries() {
     prisma.issueHistory.findMany({
       where: { asset: { deletedAt: null } },
       select: { assetId: true, downtimeDays: true },
+    }),
+    prisma.issue.findMany({
+      where: { asset: { deletedAt: null } },
+      select: { assetId: true, asset: { select: { locationId: true } } },
     }),
   ]);
 
@@ -40,6 +44,7 @@ export async function getLocationSummaries() {
       limited: eq.filter((e) => e.status === "limited").length,
       unavailable: eq.filter((e) => e.status === "unavailable").length,
       availabilityPct: stats.availabilityPct,
+      activeIssues: issues.filter((i) => i.asset.locationId === loc.id).length,
     };
   });
 }
