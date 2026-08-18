@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, ChevronRight } from "lucide-react";
-import { EmptyState, ExportButton, SortableHeader, StatusBadge, downloadCsv } from "@/components/ui";
+import { EmptyState, ExportButton, SortableHeader, StatusBadge, CriticalityBadge, downloadCsv } from "@/components/ui";
 import { useSort } from "@/lib/hooks/useSort";
-import { colors, criticalityTier, selectStyle } from "@/lib/theme";
+import { criticalityTier } from "@/lib/theme";
 import type { getEquipmentList } from "@/lib/data/equipment";
 
 type Equipment = Awaited<ReturnType<typeof getEquipmentList>>[number];
@@ -63,26 +63,31 @@ export function EquipmentContent({ equipment }: { equipment: Equipment[] }) {
   }
 
   return (
-    <div>
-      <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: 7, padding: "0 10px", height: 34, flex: "1 1 220px" }}>
-          <Search size={14} color={colors.textGhost} />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search asset ID, number, or manufacturer" style={{ background: "transparent", border: "none", outline: "none", color: colors.text, fontSize: 13, width: "100%" }} />
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex h-9 flex-1 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3" style={{ minWidth: 220 }}>
+          <Search className="h-3.5 w-3.5 text-slate-400" />
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search asset ID, number, or manufacturer" className="w-full bg-transparent text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none" />
         </div>
-        <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} style={selectStyle}>
+        <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} className="input h-9 w-auto py-0">
           {classes.map((c) => (
             <option key={c}>{c}</option>
           ))}
         </select>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={selectStyle}>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input h-9 w-auto py-0">
           <option>All</option>
           <option value="available">Available</option>
           <option value="limited">Limited</option>
           <option value="unavailable">Unavailable</option>
         </select>
-        <div style={{ display: "flex", background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: 7, padding: 2 }}>
+        <div className="flex rounded-lg bg-slate-200/70 p-1">
           {(["location", "class"] as const).map((v) => (
-            <button key={v} onClick={() => setViewBy(v)} style={{ padding: "6px 12px", fontSize: 12.5, borderRadius: 5, border: "none", cursor: "pointer", background: viewBy === v ? colors.border : "transparent", color: viewBy === v ? colors.text : colors.textFaint }}>
+            <button
+              key={v}
+              type="button"
+              onClick={() => setViewBy(v)}
+              className={`rounded-md px-3 py-1 text-xs font-semibold capitalize transition ${viewBy === v ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            >
               By {v}
             </button>
           ))}
@@ -90,9 +95,9 @@ export function EquipmentContent({ equipment }: { equipment: Equipment[] }) {
         <ExportButton onClick={exportCsv} label="Export" />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "90px 90px 1fr 90px 90px 15px", gap: 12, padding: "0 14px", marginBottom: 6 }}>
-        <span style={{ fontSize: 12.5, color: colors.textGhost }}>Asset</span>
-        <span style={{ fontSize: 12.5, color: colors.textGhost }}>Class</span>
+      <div className="grid grid-cols-[90px_90px_1fr_90px_90px_15px] gap-3 px-3 text-xs">
+        <span className="text-slate-400">Asset</span>
+        <span className="text-slate-400">Class</span>
         <span></span>
         <SortableHeader label="Criticality" sortKey="criticality" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
         <SortableHeader label="Status" sortKey="status" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
@@ -103,21 +108,19 @@ export function EquipmentContent({ equipment }: { equipment: Equipment[] }) {
         <EmptyState icon={Search} title="No matching equipment" detail="Try a different search term or clear a filter." />
       ) : (
         Object.entries(grouped).map(([group, items]) => (
-          <div key={group} style={{ marginBottom: 22 }}>
-            <p style={{ fontSize: 12.5, fontWeight: 600, color: colors.textGhost, textTransform: "uppercase", letterSpacing: 0.5, margin: "0 0 8px" }}>{group}</p>
-            <div style={{ border: `1px solid ${colors.border}`, borderRadius: 10, overflow: "hidden" }}>
-              {items.map((e, i) => (
-                <div
-                  key={e.id}
-                  onClick={() => router.push(`/equipment/${e.id}`)}
-                  style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 12, padding: "11px 14px", borderTop: i === 0 ? "none" : `1px solid ${colors.borderSubtle}`, background: colors.bgRow }}
-                >
-                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, fontWeight: 600, color: colors.text, width: 90 }}>{e.id}</span>
-                  <span style={{ fontSize: 12.5, color: colors.textFaint, width: 90 }}>{e.class}</span>
-                  <span style={{ fontSize: 12.5, color: colors.textGhost, flex: 1 }}>{e.manufacturer} {e.model}</span>
-                  <span style={{ fontSize: 12, color: criticalityTier(e.critScore).color, fontFamily: "'JetBrains Mono', monospace" }}>{criticalityTier(e.critScore).label}</span>
+          <div key={group}>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">{group}</p>
+            <div className="card divide-y divide-slate-100 overflow-hidden">
+              {items.map((e) => (
+                <div key={e.id} onClick={() => router.push(`/equipment/${e.id}`)} className="flex cursor-pointer items-center gap-3 px-3.5 py-2.5 hover:bg-slate-50">
+                  <span className="w-[90px] font-mono text-sm font-semibold text-slate-900">{e.id}</span>
+                  <span className="w-[90px] text-xs text-slate-500">{e.class}</span>
+                  <span className="flex-1 text-xs text-slate-400">
+                    {e.manufacturer} {e.model}
+                  </span>
+                  <CriticalityBadge tier={criticalityTier(e.critScore)} />
                   <StatusBadge status={e.status} />
-                  <ChevronRight size={15} color={colors.textGhostDark} />
+                  <ChevronRight className="h-4 w-4 text-slate-300" />
                 </div>
               ))}
             </div>

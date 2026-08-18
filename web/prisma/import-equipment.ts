@@ -63,6 +63,15 @@ async function main() {
     process.exit(1);
   }
 
+  // Match locations/systems by name (case-insensitive) first, so re-importing
+  // against existing data (e.g. the seeded "central" / "Central Utility
+  // Plant") reuses the existing row instead of creating a same-name
+  // duplicate under a freshly slugified id.
+  const existingLocations = await prisma.location.findMany();
+  const locationIdByName = new Map(existingLocations.map((l) => [l.name.toLowerCase(), l.id]));
+  const existingSystems = await prisma.system.findMany();
+  const systemIdByKey = new Map(existingSystems.map((s) => [`${s.locationId}::${s.name.toLowerCase()}`, s.id]));
+
   let locationsCreated = 0;
   let systemsCreated = 0;
   let equipmentUpserted = 0;
@@ -70,23 +79,32 @@ async function main() {
   for (const [i, row] of rows.entries()) {
     const line = i + 2; // +1 for header, +1 for 1-indexing
     try {
-      const locationId = slugify(row.location_name);
-      const location = await prisma.location.upsert({
-        where: { id: locationId },
-        update: { name: row.location_name },
-        create: { id: locationId, name: row.location_name },
-      });
-      if (location.name === row.location_name) locationsCreated++;
+      let locationId = locationIdByName.get(row.location_name.toLowerCase());
+      if (!locationId) {
+        locationId = slugify(row.location_name);
+        await prisma.location.upsert({
+          where: { id: locationId },
+          update: { name: row.location_name },
+          create: { id: locationId, name: row.location_name },
+        });
+        locationIdByName.set(row.location_name.toLowerCase(), locationId);
+        locationsCreated++;
+      }
 
-      const systemId = `${locationId}-${slugify(row.system_name)}`;
-      const iconRaw = row.system_icon?.trim().toLowerCase();
-      const icon = iconRaw && (SYSTEM_ICON_KEYS as readonly string[]).includes(iconRaw) ? iconRaw : "gauge";
-      await prisma.system.upsert({
-        where: { id: systemId },
-        update: { name: row.system_name, locationId, icon },
-        create: { id: systemId, name: row.system_name, locationId, icon },
-      });
-      systemsCreated++;
+      const systemKey = `${locationId}::${row.system_name.toLowerCase()}`;
+      let systemId = systemIdByKey.get(systemKey);
+      if (!systemId) {
+        systemId = `${locationId}-${slugify(row.system_name)}`;
+        const iconRaw = row.system_icon?.trim().toLowerCase();
+        const icon = iconRaw && (SYSTEM_ICON_KEYS as readonly string[]).includes(iconRaw) ? iconRaw : "gauge";
+        await prisma.system.upsert({
+          where: { id: systemId },
+          update: { name: row.system_name, locationId, icon },
+          create: { id: systemId, name: row.system_name, locationId, icon },
+        });
+        systemIdByKey.set(systemKey, systemId);
+        systemsCreated++;
+      }
 
       const critLikelihood = Number(row.crit_likelihood);
       const critConsequence = Number(row.crit_consequence);

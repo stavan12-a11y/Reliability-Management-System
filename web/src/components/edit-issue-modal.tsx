@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { ModalShell, ModalActions, ConfirmDialog } from "./ui";
-import { fieldInputStyle, fieldLabelStyle, colors } from "@/lib/theme";
 import { fullEditIssue, deleteIssue } from "@/lib/actions/issues";
 
 type IssueForEdit = {
@@ -62,38 +61,38 @@ export function EditIssueModal({ issue, onClose }: { issue: IssueForEdit; onClos
   return (
     <>
       <ModalShell onClose={onClose} title="Edit issue">
-        <div style={{ marginBottom: 12 }}>
-          <label style={fieldLabelStyle}>Description</label>
-          <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={2} style={{ ...fieldInputStyle, resize: "vertical", fontFamily: "inherit" }} />
+        <label className="mb-3 block">
+          <span className="label">Description</span>
+          <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} rows={2} className="input resize-y" />
+        </label>
+        <label className="mb-3 block">
+          <span className="label">Next step</span>
+          <input value={form.nextStep} onChange={(e) => setForm((f) => ({ ...f, nextStep: e.target.value }))} className="input" />
+        </label>
+        <div className="mb-3 grid grid-cols-2 gap-2.5">
+          <label className="block">
+            <span className="label">Responsible party</span>
+            <input value={form.responsible} onChange={(e) => setForm((f) => ({ ...f, responsible: e.target.value }))} className="input" />
+          </label>
+          <label className="block">
+            <span className="label">AIM work order</span>
+            <input value={form.woNumber} onChange={(e) => setForm((f) => ({ ...f, woNumber: e.target.value }))} className="input" />
+          </label>
         </div>
-        <div style={{ marginBottom: 12 }}>
-          <label style={fieldLabelStyle}>Next step</label>
-          <input value={form.nextStep} onChange={(e) => setForm((f) => ({ ...f, nextStep: e.target.value }))} style={fieldInputStyle} />
+        <div className="mb-4 grid grid-cols-2 gap-2.5">
+          <label className="block">
+            <span className="label">Parts ETA</span>
+            <input type="date" value={form.partsEta} onChange={(e) => setForm((f) => ({ ...f, partsEta: e.target.value }))} className="input" />
+          </label>
+          <label className="block">
+            <span className="label">Return ETA</span>
+            <input type="date" value={form.returnEta} onChange={(e) => setForm((f) => ({ ...f, returnEta: e.target.value }))} className="input" />
+          </label>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-          <div>
-            <label style={fieldLabelStyle}>Responsible party</label>
-            <input value={form.responsible} onChange={(e) => setForm((f) => ({ ...f, responsible: e.target.value }))} style={fieldInputStyle} />
-          </div>
-          <div>
-            <label style={fieldLabelStyle}>AIM work order</label>
-            <input value={form.woNumber} onChange={(e) => setForm((f) => ({ ...f, woNumber: e.target.value }))} style={fieldInputStyle} />
-          </div>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
-          <div>
-            <label style={fieldLabelStyle}>Parts ETA</label>
-            <input type="date" value={form.partsEta} onChange={(e) => setForm((f) => ({ ...f, partsEta: e.target.value }))} style={fieldInputStyle} />
-          </div>
-          <div>
-            <label style={fieldLabelStyle}>Return ETA</label>
-            <input type="date" value={form.returnEta} onChange={(e) => setForm((f) => ({ ...f, returnEta: e.target.value }))} style={fieldInputStyle} />
-          </div>
-        </div>
-        {error && <p style={{ fontSize: 12, color: colors.danger, margin: "0 0 10px" }}>{error}</p>}
+        {error && <p className="mb-2.5 text-xs text-red-600">{error}</p>}
         <ModalActions onCancel={onClose} onSave={handleSave} saveLabel={pending ? "Saving…" : "Save changes"} disabled={pending} />
-        <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${colors.borderSubtle}`, textAlign: "center" }}>
-          <span onClick={() => setConfirmingDelete(true)} style={{ fontSize: 12, color: colors.danger, cursor: "pointer" }}>
+        <div className="mt-3.5 border-t border-slate-100 pt-3.5 text-center">
+          <span onClick={() => setConfirmingDelete(true)} className="cursor-pointer text-xs text-red-600 hover:underline">
             Delete this issue
           </span>
         </div>

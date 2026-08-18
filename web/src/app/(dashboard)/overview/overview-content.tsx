@@ -2,12 +2,17 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, CheckCircle2 } from "lucide-react";
-import { KpiRow, MetricCard, SectionHeader, EmptyState, StatusBadge } from "@/components/ui";
-import { availabilityColor, colors } from "@/lib/theme";
+import { Bell, CheckCircle2, Percent, ShieldAlert, Clock, AlertTriangle, Wrench, Package } from "lucide-react";
+import { KpiCard, KpiGrid, SectionHeader, EmptyState, StatusBadge } from "@/components/ui";
 import type { getActiveIssues } from "@/lib/data/issues";
 
 type Issue = Awaited<ReturnType<typeof getActiveIssues>>[number];
+
+function availabilityAccent(pct: number) {
+  if (pct >= 97) return { accent: "text-emerald-600", iconBg: "bg-emerald-50" };
+  if (pct >= 90) return { accent: "text-amber-600", iconBg: "bg-amber-50" };
+  return { accent: "text-red-600", iconBg: "bg-red-50" };
+}
 
 export function OverviewContent({
   counts,
@@ -23,66 +28,84 @@ export function OverviewContent({
   const router = useRouter();
   const [showDigest, setShowDigest] = useState(false);
 
+  const fleetAvail = availabilityAccent(fleetStats.availabilityPct);
+  const criticalAvail = availabilityAccent(fleetStats.criticalAvailabilityPct);
+
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-        <p style={{ margin: 0, fontSize: 12.5, color: colors.textGhost }}>
-          Morning brief · {new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
-        </p>
-        <button
-          onClick={() => setShowDigest((s) => !s)}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 12px", height: 30, borderRadius: 7, background: showDigest ? colors.accentBg : colors.bgCard, border: showDigest ? `1px solid ${colors.accentBorder}` : `1px solid ${colors.border}`, color: showDigest ? colors.accent : colors.textDim, fontSize: 12, cursor: "pointer" }}
-        >
-          <Bell size={12} /> Daily digest preview
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900">Fleet Reliability Overview</h2>
+          <p className="text-sm text-slate-500">Morning brief · {new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}</p>
+        </div>
+        <button type="button" onClick={() => setShowDigest((s) => !s)} className={showDigest ? "btn bg-maroon-100 text-maroon-800" : "btn-secondary"}>
+          <Bell className="h-4 w-4" /> Daily digest preview
         </button>
       </div>
 
       {showDigest && (
-        <div style={{ background: colors.bgCard, border: `1px solid ${colors.accentBorder}`, borderRadius: 10, padding: "14px 16px", marginBottom: 20 }}>
-          <p style={{ margin: "0 0 8px", fontSize: 12.5, fontWeight: 600, color: colors.accent, textTransform: "uppercase", letterSpacing: 0.4 }}>Sent to reliability managers, 6:00 AM daily</p>
-          <p style={{ margin: 0, fontSize: 13.5, color: colors.textMuted, lineHeight: 1.6 }}>
-            {counts.unavailable} assets unavailable, {counts.limited} operating with limitations. {counts.overdue} issue{counts.overdue !== 1 ? "s" : ""} overdue on next steps. {newSinceYesterday} update{newSinceYesterday !== 1 ? "s" : ""} logged since yesterday. Open the dashboard for details.
+        <div className="card border-maroon-200 bg-maroon-50 p-4">
+          <p className="mb-1.5 text-xs font-bold uppercase tracking-wide text-maroon-700">Sent to reliability managers, 6:00 AM daily</p>
+          <p className="text-sm leading-relaxed text-slate-700">
+            {counts.unavailable} assets unavailable, {counts.limited} operating with limitations. {counts.overdue} issue{counts.overdue !== 1 ? "s" : ""} overdue on next steps.{" "}
+            {newSinceYesterday} update{newSinceYesterday !== 1 ? "s" : ""} logged since yesterday. Open the dashboard for details.
           </p>
         </div>
       )}
 
-      <KpiRow
-        kpis={[
-          { label: "Fleet availability (90d)", value: `${fleetStats.availabilityPct}%`, color: availabilityColor(fleetStats.availabilityPct), detail: "All UES equipment" },
-          { label: "Critical asset availability", value: `${fleetStats.criticalAvailabilityPct}%`, color: availabilityColor(fleetStats.criticalAvailabilityPct), detail: "Critical-tier only" },
-          { label: "Avg. repair time (MTTR)", value: fleetStats.mttrDays != null ? `${fleetStats.mttrDays}d` : "—", detail: "Per resolved issue" },
-        ]}
-      />
+      <KpiGrid>
+        <KpiCard label="Fleet availability (90d)" value={`${fleetStats.availabilityPct}%`} icon={Percent} accent={fleetAvail.accent} iconBg={fleetAvail.iconBg} hint="All UES equipment" />
+        <KpiCard label="Critical asset availability" value={`${fleetStats.criticalAvailabilityPct}%`} icon={ShieldAlert} accent={criticalAvail.accent} iconBg={criticalAvail.iconBg} hint="Critical-tier only" />
+        <KpiCard label="Avg. repair time (MTTR)" value={fleetStats.mttrDays != null ? `${fleetStats.mttrDays}d` : "—"} icon={Clock} accent="text-slate-700" iconBg="bg-slate-100" hint="Per resolved issue" />
+        <KpiCard
+          label="Unavailable"
+          value={counts.unavailable}
+          icon={AlertTriangle}
+          accent={counts.unavailable > 0 ? "text-red-600" : "text-emerald-600"}
+          iconBg={counts.unavailable > 0 ? "bg-red-50" : "bg-emerald-50"}
+          onClick={() => router.push("/issues?tab=unavailable")}
+        />
+        <KpiCard
+          label="Operating limited"
+          value={counts.limited}
+          icon={Wrench}
+          accent={counts.limited > 0 ? "text-amber-600" : "text-emerald-600"}
+          iconBg={counts.limited > 0 ? "bg-amber-50" : "bg-emerald-50"}
+          onClick={() => router.push("/issues?tab=limited")}
+        />
+        <KpiCard
+          label="Overdue next steps"
+          value={counts.overdue}
+          icon={Clock}
+          accent={counts.overdue > 0 ? "text-red-600" : "text-emerald-600"}
+          iconBg={counts.overdue > 0 ? "bg-red-50" : "bg-emerald-50"}
+          onClick={() => router.push("/issues?tab=overdue")}
+        />
+        <KpiCard label="Awaiting parts" value={counts.awaitingParts} icon={Package} accent="text-slate-600" iconBg="bg-slate-100" onClick={() => router.push("/issues?tab=all")} />
+      </KpiGrid>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 28 }}>
-        <MetricCard label="Unavailable" value={counts.unavailable} tone="unavailable" onClick={() => router.push("/issues?tab=unavailable")} zeroDetail="No equipment currently down" />
-        <MetricCard label="Operating limited" value={counts.limited} tone="limited" onClick={() => router.push("/issues?tab=limited")} zeroDetail="Everything at full capacity" />
-        <MetricCard label="Overdue next steps" value={counts.overdue} tone="unavailable" onClick={() => router.push("/issues?tab=overdue")} zeroDetail="Nothing behind schedule" />
-        <MetricCard label="Awaiting parts" value={counts.awaitingParts} tone="neutral" onClick={() => router.push("/issues?tab=all")} zeroDetail="No open parts orders" />
-      </div>
-
-      <SectionHeader title="Active issues" subtitle="Sorted by urgency and criticality" />
       <div>
+        <SectionHeader title="Active issues" subtitle="Sorted by urgency and criticality" />
         {issues.length === 0 ? (
           <EmptyState icon={CheckCircle2} title="All equipment available" detail="No active issues across UES right now." />
         ) : (
-          issues.map((issue) => (
-            <div
-              key={issue.id}
-              onClick={() => router.push(`/equipment/${issue.assetId}`)}
-              style={{ cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "13px 4px", borderBottom: `1px solid ${colors.borderSubtle}`, gap: 12 }}
-            >
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
-                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13.5, fontWeight: 600, color: colors.text }}>{issue.assetId}</span>
-                  <span style={{ fontSize: 12.5, color: colors.textGhost }}>{issue.asset.location.name} · {issue.asset.system.name}</span>
-                  {issue.overdue && <span style={{ fontSize: 10.5, fontWeight: 700, color: colors.danger, letterSpacing: 0.3 }}>OVERDUE</span>}
+          <div className="card divide-y divide-slate-100">
+            {issues.map((issue) => (
+              <div key={issue.id} onClick={() => router.push(`/equipment/${issue.assetId}`)} className="flex cursor-pointer items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50">
+                <div className="min-w-0 flex-1">
+                  <div className="mb-0.5 flex items-center gap-2">
+                    <span className="font-mono text-sm font-semibold text-slate-900">{issue.assetId}</span>
+                    <span className="text-xs text-slate-500">
+                      {issue.asset.location.name} · {issue.asset.system.name}
+                    </span>
+                    {issue.overdue && <span className="text-[10px] font-bold tracking-wide text-red-600">OVERDUE</span>}
+                  </div>
+                  <p className="truncate text-sm text-slate-600">{issue.description}</p>
                 </div>
-                <p style={{ margin: 0, fontSize: 13, color: colors.textDim, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{issue.description}</p>
+                <StatusBadge status={issue.condition === "unavailable" ? "unavailable" : "limited"} />
               </div>
-              <StatusBadge status={issue.condition === "unavailable" ? "unavailable" : "limited"} />
-            </div>
-          ))
+            ))}
+          </div>
         )}
       </div>
     </div>

@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react";
 import { ModalShell, ModalActions, ConfirmDialog } from "./ui";
-import { fieldInputStyle, fieldLabelStyle, colors } from "@/lib/theme";
 import { updateEquipment, deleteEquipment } from "@/lib/actions/equipment";
 
 export function EditEquipmentModal({
@@ -48,38 +47,38 @@ export function EditEquipmentModal({
   return (
     <>
       <ModalShell onClose={onClose} title={`Edit ${asset.id}`}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-          <div>
-            <label style={fieldLabelStyle}>Asset number</label>
-            <input value={form.assetNumber} onChange={(e) => setForm((f) => ({ ...f, assetNumber: e.target.value }))} style={fieldInputStyle} />
-          </div>
-          <div>
-            <label style={fieldLabelStyle}>Serial number</label>
-            <input value={form.serial} onChange={(e) => setForm((f) => ({ ...f, serial: e.target.value }))} style={fieldInputStyle} />
-          </div>
+        <div className="mb-3 grid grid-cols-2 gap-2.5">
+          <label className="block">
+            <span className="label">Asset number</span>
+            <input value={form.assetNumber} onChange={(e) => setForm((f) => ({ ...f, assetNumber: e.target.value }))} className="input" />
+          </label>
+          <label className="block">
+            <span className="label">Serial number</span>
+            <input value={form.serial} onChange={(e) => setForm((f) => ({ ...f, serial: e.target.value }))} className="input" />
+          </label>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
-          <div>
-            <label style={fieldLabelStyle}>Manufacturer</label>
-            <input value={form.manufacturer} onChange={(e) => setForm((f) => ({ ...f, manufacturer: e.target.value }))} style={fieldInputStyle} />
-          </div>
-          <div>
-            <label style={fieldLabelStyle}>Model</label>
-            <input value={form.model} onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))} style={fieldInputStyle} />
-          </div>
+        <div className="mb-3 grid grid-cols-2 gap-2.5">
+          <label className="block">
+            <span className="label">Manufacturer</span>
+            <input value={form.manufacturer} onChange={(e) => setForm((f) => ({ ...f, manufacturer: e.target.value }))} className="input" />
+          </label>
+          <label className="block">
+            <span className="label">Model</span>
+            <input value={form.model} onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))} className="input" />
+          </label>
         </div>
-        <p style={{ fontSize: 12, color: colors.textGhost, margin: "14px 0 8px", fontWeight: 500 }}>Nameplate data</p>
+        <p className="mb-2 mt-3.5 text-xs font-semibold text-slate-500">Nameplate data</p>
         {Object.entries(form.nameplate).map(([key, val]) => (
-          <div key={key} style={{ marginBottom: 10 }}>
-            <label style={fieldLabelStyle}>{key}</label>
-            <input value={val} onChange={(e) => setNameplateField(key, e.target.value)} style={fieldInputStyle} />
-          </div>
+          <label key={key} className="mb-2.5 block">
+            <span className="label">{key}</span>
+            <input value={val} onChange={(e) => setNameplateField(key, e.target.value)} className="input" />
+          </label>
         ))}
-        <p style={{ fontSize: 11.5, color: "#5a6272", margin: "4px 0 16px" }}>Use this when a component is replaced (e.g. new motor, new serial) so the asset record stays current.</p>
-        {error && <p style={{ fontSize: 12, color: colors.danger, margin: "0 0 10px" }}>{error}</p>}
+        <p className="mb-4 mt-1 text-xs text-slate-400">Use this when a component is replaced (e.g. new motor, new serial) so the asset record stays current.</p>
+        {error && <p className="mb-2.5 text-xs text-red-600">{error}</p>}
         <ModalActions onCancel={onClose} onSave={handleSave} saveLabel={pending ? "Saving…" : "Save changes"} disabled={pending} />
-        <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${colors.borderSubtle}`, textAlign: "center" }}>
-          <span onClick={() => setConfirmingDelete(true)} style={{ fontSize: 12, color: colors.danger, cursor: "pointer" }}>
+        <div className="mt-3.5 border-t border-slate-100 pt-3.5 text-center">
+          <span onClick={() => setConfirmingDelete(true)} className="cursor-pointer text-xs text-red-600 hover:underline">
             Delete this equipment record
           </span>
         </div>

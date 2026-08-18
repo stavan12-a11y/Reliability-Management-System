@@ -1,33 +1,18 @@
 import { LoginForm } from "./login-form";
-import { colors } from "@/lib/theme";
 import { Gauge } from "lucide-react";
 
 export default function LoginPage() {
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: colors.bg,
-        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 380,
-          background: colors.bgPanel,
-          border: `1px solid ${colors.borderSubtle}`,
-          borderRadius: 14,
-          padding: "28px 26px",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 22 }}>
-          <Gauge size={20} color={colors.accent} />
-          <span style={{ fontSize: 16, fontWeight: 600, color: colors.text }}>UES Reliability</span>
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-maroon-900 to-maroon-950 px-4">
+      <div className="w-full max-w-sm">
+        <div className="mb-6 flex flex-col items-center text-center text-white">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
+            <Gauge className="h-7 w-7" />
+          </div>
+          <h1 className="mt-4 text-xl font-bold">UES Reliability Dashboard</h1>
+          <p className="text-sm text-maroon-200">Texas A&amp;M University · Utilities &amp; Energy Services</p>
         </div>
+
         <LoginForm />
       </div>
     </div>

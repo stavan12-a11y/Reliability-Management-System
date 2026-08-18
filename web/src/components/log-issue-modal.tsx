@@ -3,7 +3,8 @@
 import { useActionState, useState } from "react";
 import { X } from "lucide-react";
 import { createIssue, type CreateIssueState } from "@/lib/actions/issues";
-import { colors, criticalityTier, fieldInputStyle, fieldLabelStyle } from "@/lib/theme";
+import { criticalityTier } from "@/lib/theme";
+import { CriticalityBadge } from "./ui";
 
 type PickerAsset = { id: string; assetNumber: string; manufacturer: string; model: string; locationId: string; critScore: number };
 
@@ -18,33 +19,49 @@ export function LogIssueModal({ onClose, equipmentList, presetAssetId }: { onClo
   const matches = query ? equipmentList.filter((e) => e.id.toLowerCase().includes(query.toLowerCase())).slice(0, 5) : [];
 
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 20 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: "#0d1117", border: `1px solid ${colors.border}`, borderRadius: 14, width: "100%", maxWidth: 440, maxHeight: "90%", overflowY: "auto", padding: "20px 22px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: colors.text }}>Log new issue</h3>
-          <X size={18} color={colors.textGhost} style={{ cursor: "pointer" }} onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-8" onClick={onClose}>
+      <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" aria-hidden />
+      <div onClick={(e) => e.stopPropagation()} className="relative z-10 w-full max-w-xl animate-fade-in rounded-2xl bg-white shadow-xl">
+        <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-6 py-4">
+          <h2 className="text-lg font-bold text-slate-900">Log new issue</h2>
+          <button onClick={onClose} className="-mr-2 rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600" aria-label="Close">
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
-        <form action={formAction}>
+        <form action={formAction} className="max-h-[70vh] overflow-y-auto px-6 py-5">
           <input type="hidden" name="assetId" value={assetId} />
 
-          <div style={{ marginBottom: 14, position: "relative" }}>
-            <label style={fieldLabelStyle}>Asset</label>
+          <div className="relative mb-3.5">
+            <span className="label">Asset</span>
             {asset ? (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: colors.bgCard, border: `1px solid ${colors.accentBorder}`, borderRadius: 7, padding: "8px 10px" }}>
-                <span style={{ fontSize: 13, color: colors.text, fontFamily: "'JetBrains Mono', monospace" }}>
-                  {asset.id} <span style={{ color: colors.textGhost, fontFamily: "inherit" }}>· {asset.manufacturer} {asset.model}</span>
+              <div className="flex items-center justify-between rounded-lg border border-maroon-300 bg-maroon-50 px-3 py-2">
+                <span className="text-sm text-slate-800">
+                  <span className="font-mono font-semibold">{asset.id}</span> <span className="text-slate-500">· {asset.manufacturer} {asset.model}</span>
                 </span>
-                <X size={14} color={colors.textGhost} style={{ cursor: "pointer" }} onClick={() => { setAssetId(""); setQuery(""); }} />
+                <X
+                  className="h-3.5 w-3.5 cursor-pointer text-slate-400"
+                  onClick={() => {
+                    setAssetId("");
+                    setQuery("");
+                  }}
+                />
               </div>
             ) : (
               <>
-                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search asset ID, e.g. CHLR003" style={fieldInputStyle} />
+                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search asset ID, e.g. CHLR003" className="input" />
                 {matches.length > 0 && (
-                  <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: 7, marginTop: 4, overflow: "hidden", zIndex: 10 }}>
+                  <div className="absolute left-0 right-0 top-full z-10 mt-1 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
                     {matches.map((m) => (
-                      <div key={m.id} onClick={() => { setAssetId(m.id); setQuery(""); }} style={{ padding: "8px 10px", fontSize: 13, cursor: "pointer", color: colors.textMuted, borderTop: `1px solid ${colors.borderSubtle}` }}>
-                        <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>{m.id}</span> <span style={{ color: colors.textGhost }}>· {m.locationId}</span>
+                      <div
+                        key={m.id}
+                        onClick={() => {
+                          setAssetId(m.id);
+                          setQuery("");
+                        }}
+                        className="cursor-pointer border-t border-slate-100 px-3 py-2 text-sm text-slate-700 first:border-t-0 hover:bg-slate-50"
+                      >
+                        <span className="font-mono font-semibold">{m.id}</span> <span className="text-slate-400">· {m.locationId}</span>
                       </div>
                     ))}
                   </div>
@@ -54,70 +71,69 @@ export function LogIssueModal({ onClose, equipmentList, presetAssetId }: { onClo
           </div>
 
           {asset && tier && (
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: colors.bgCard, borderRadius: 7, padding: "8px 10px", marginBottom: 14 }}>
-              <span style={{ fontSize: 12, color: colors.textFaint }}>Criticality (auto-filled from asset)</span>
-              <span style={{ fontSize: 12, fontWeight: 600, color: tier.color }}>{tier.label}</span>
+            <div className="mb-3.5 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2">
+              <span className="text-xs text-slate-500">Criticality (auto-filled from asset)</span>
+              <CriticalityBadge tier={tier} />
             </div>
           )}
 
-          <div style={{ marginBottom: 14 }}>
-            <label style={fieldLabelStyle}>Condition</label>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button type="button" onClick={() => setCondition("unavailable")} style={{
-                flex: 1, padding: "9px 0", borderRadius: 7, fontSize: 13, cursor: "pointer", fontWeight: 500,
-                background: condition === "unavailable" ? colors.dangerBg : colors.bgCard,
-                border: condition === "unavailable" ? `1px solid ${colors.danger}` : `1px solid ${colors.border}`,
-                color: condition === "unavailable" ? colors.danger : colors.textFaint,
-              }}>Unavailable</button>
-              <button type="button" onClick={() => setCondition("limited")} style={{
-                flex: 1, padding: "9px 0", borderRadius: 7, fontSize: 13, cursor: "pointer", fontWeight: 500,
-                background: condition === "limited" ? colors.warnBg : colors.bgCard,
-                border: condition === "limited" ? `1px solid ${colors.warn}` : `1px solid ${colors.border}`,
-                color: condition === "limited" ? colors.warn : colors.textFaint,
-              }}>Limited</button>
+          <div className="mb-3.5">
+            <span className="label">Condition</span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setCondition("unavailable")}
+                className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${condition === "unavailable" ? "bg-red-100 text-red-700 ring-1 ring-red-600/30" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
+              >
+                Unavailable
+              </button>
+              <button
+                type="button"
+                onClick={() => setCondition("limited")}
+                className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${condition === "limited" ? "bg-amber-100 text-amber-700 ring-1 ring-amber-600/30" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}
+              >
+                Limited
+              </button>
             </div>
             <input type="hidden" name="condition" value={condition} />
-            <p style={{ margin: "6px 0 0", fontSize: 11.5, color: colors.textGhost }}>
-              {condition === "unavailable" ? "Asset is fully down and out of service." : "Asset is still running, but degraded or constrained."}
-            </p>
+            <p className="mt-1.5 text-xs text-slate-400">{condition === "unavailable" ? "Asset is fully down and out of service." : "Asset is still running, but degraded or constrained."}</p>
           </div>
 
-          <div style={{ marginBottom: 14 }}>
-            <label style={fieldLabelStyle}>Description</label>
-            <textarea name="description" required placeholder="What's wrong, e.g. Low oil pressure on compressor bearing" rows={2} style={{ ...fieldInputStyle, resize: "vertical", fontFamily: "inherit" }} />
+          <label className="mb-3.5 block">
+            <span className="label">Description</span>
+            <textarea name="description" required placeholder="What's wrong, e.g. Low oil pressure on compressor bearing" rows={2} className="input resize-y" />
+          </label>
+
+          <div className="mb-3.5 grid grid-cols-2 gap-2.5">
+            <label className="block">
+              <span className="label">Responsible party</span>
+              <input name="responsible" placeholder="Name" className="input" />
+            </label>
+            <label className="block">
+              <span className="label">Return ETA (if known)</span>
+              <input name="returnEta" type="date" className="input" />
+            </label>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 14 }}>
-            <div>
-              <label style={fieldLabelStyle}>Responsible party</label>
-              <input name="responsible" placeholder="Name" style={fieldInputStyle} />
-            </div>
-            <div>
-              <label style={fieldLabelStyle}>Return ETA (if known)</label>
-              <input name="returnEta" type="date" style={fieldInputStyle} />
-            </div>
-          </div>
+          <label className="mb-3.5 block">
+            <span className="label">Next step</span>
+            <input name="nextStep" placeholder="e.g. Await replacement bearing from vendor" className="input" />
+          </label>
 
-          <div style={{ marginBottom: 14 }}>
-            <label style={fieldLabelStyle}>Next step</label>
-            <input name="nextStep" placeholder="e.g. Await replacement bearing from vendor" style={fieldInputStyle} />
-          </div>
+          <label className="mb-2.5 block">
+            <span className="label">AIM work order number (optional)</span>
+            <input name="woNumber" placeholder="e.g. WO-118500 — add later if not cut yet" className="input" />
+          </label>
 
-          <div style={{ marginBottom: 10 }}>
-            <label style={fieldLabelStyle}>AIM work order number (optional)</label>
-            <input name="woNumber" placeholder="e.g. WO-118500 — add later if not cut yet" style={fieldInputStyle} />
-          </div>
+          {state?.error && <p className="mb-2.5 text-xs text-red-600">{state.error}</p>}
 
-          {state?.error && <p style={{ margin: "0 0 10px", fontSize: 12.5, color: colors.danger }}>{state.error}</p>}
-
-          <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: "10px 0", borderRadius: 7, background: "transparent", border: `1px solid ${colors.border}`, color: colors.textDim, fontSize: 13, cursor: "pointer" }}>Cancel</button>
-            <button type="submit" disabled={!assetId || pending} style={{
-              flex: 2, padding: "10px 0", borderRadius: 7, border: "none", fontSize: 13, fontWeight: 600,
-              cursor: !assetId || pending ? "not-allowed" : "pointer",
-              background: !assetId || pending ? colors.border : colors.accent,
-              color: !assetId || pending ? colors.textGhostDark : "#0a0d12",
-            }}>{pending ? "Logging…" : "Log issue"}</button>
+          <div className="mt-2.5 flex gap-3">
+            <button type="button" onClick={onClose} className="btn-secondary flex-1">
+              Cancel
+            </button>
+            <button type="submit" disabled={!assetId || pending} className="btn-primary flex-[2]">
+              {pending ? "Logging…" : "Log issue"}
+            </button>
           </div>
         </form>
       </div>

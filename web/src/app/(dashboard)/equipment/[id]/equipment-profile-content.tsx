@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, User, ExternalLink, Clock, Box, Search, Pencil } from "lucide-react";
-import { StatusBadge, KpiRow, InfoCard, EmptyState } from "@/components/ui";
+import { ChevronRight, User, ExternalLink, Clock, Box, Search, Pencil, Percent, Wrench } from "lucide-react";
+import { StatusBadge, CriticalityBadge, KpiCard, KpiGrid, InfoCard, EmptyState } from "@/components/ui";
 import { EditEquipmentModal } from "@/components/edit-equipment-modal";
 import { EditIssueModal } from "@/components/edit-issue-modal";
 import { ResolveIssueModal } from "@/components/resolve-issue-modal";
-import { availabilityColor, colors, criticalityTier } from "@/lib/theme";
+import { criticalityTier } from "@/lib/theme";
 import { assetAvailabilityPct } from "@/lib/data/kpis";
 import type { getEquipmentById } from "@/lib/data/equipment";
 import type { getActiveIssueByAssetId } from "@/lib/data/issues";
@@ -25,6 +25,12 @@ const TABS = ["overview", "issues", "updates", "maintenance", "documents"] as co
 
 function fmtDate(d: string | Date) {
   return new Date(d).toISOString().slice(0, 10);
+}
+
+function availabilityAccent(pct: number) {
+  if (pct >= 97) return { accent: "text-emerald-600", iconBg: "bg-emerald-50" };
+  if (pct >= 90) return { accent: "text-amber-600", iconBg: "bg-amber-50" };
+  return { accent: "text-red-600", iconBg: "bg-red-50" };
 }
 
 export function EquipmentProfileContent({
@@ -52,6 +58,7 @@ export function EquipmentProfileContent({
   const tier = criticalityTier(asset.critScore);
   const nameplate = (asset.nameplate as Record<string, string>) ?? {};
   const availPct = assetAvailabilityPct(asset.downtimeDays90d);
+  const avail = availabilityAccent(availPct);
 
   return (
     <div>
@@ -68,69 +75,97 @@ export function EquipmentProfileContent({
         <ResolveIssueModal issue={{ id: activeIssue.id, assetId: activeIssue.assetId, condition: activeIssue.condition, identifiedAt: activeIssue.identifiedAt }} onClose={() => setShowResolve(false)} />
       )}
 
-      <div onClick={() => router.push("/equipment")} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: colors.textGhost, cursor: "pointer", marginBottom: 14 }}>
+      <div onClick={() => router.push("/equipment")} className="mb-3 flex cursor-pointer items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700">
         <span>{asset.location.name}</span>
-        <ChevronRight size={12} />
+        <ChevronRight className="h-3 w-3" />
         <span>{asset.system.name}</span>
-        <ChevronRight size={12} />
-        <span style={{ color: colors.textDim }}>{asset.id}</span>
+        <ChevronRight className="h-3 w-3" />
+        <span className="font-medium text-slate-700">{asset.id}</span>
       </div>
 
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, flexWrap: "wrap", gap: 10 }}>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 style={{ margin: "0 0 4px", fontSize: 22, fontWeight: 600, color: colors.text, fontFamily: "'JetBrains Mono', monospace" }}>{asset.id}</h2>
-          <p style={{ margin: 0, fontSize: 13, color: colors.textFaint }}>{asset.assetNumber} · {asset.manufacturer} {asset.model} · {asset.class}</p>
+          <h2 className="font-mono text-xl font-bold text-slate-900">{asset.id}</h2>
+          <p className="text-sm text-slate-500">
+            {asset.assetNumber} · {asset.manufacturer} {asset.model} · {asset.class}
+          </p>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div className="flex items-center gap-2">
           <StatusBadge status={asset.status} />
-          <span title="Based on likelihood and consequence of failure" style={{ fontSize: 12, padding: "3px 10px", borderRadius: 4, background: colors.border, color: tier.color, fontWeight: 600 }}>
-            {tier.label}
+          <span title="Based on likelihood and consequence of failure">
+            <CriticalityBadge tier={tier} />
           </span>
           {canManage && (
-            <button onClick={() => setShowEditEquipment(true)} title="Edit equipment details" style={{ display: "flex", alignItems: "center", gap: 5, background: "transparent", border: `1px solid ${colors.border}`, borderRadius: 6, padding: "5px 10px", cursor: "pointer", color: colors.textDim, fontSize: 12 }}>
-              <Pencil size={11} /> Edit
+            <button type="button" onClick={() => setShowEditEquipment(true)} title="Edit equipment details" className="btn-secondary px-2.5 py-1.5 text-xs">
+              <Pencil className="h-3 w-3" /> Edit
             </button>
           )}
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 4, borderBottom: `1px solid ${colors.border}`, marginBottom: 20, marginTop: 12, overflowX: "auto" }}>
+      <div className="mb-5 flex gap-1 overflow-x-auto border-b border-slate-200">
         {TABS.map((t) => (
-          <span key={t} onClick={() => setTab(t)} style={{ padding: "9px 13px", fontSize: 13.5, cursor: "pointer", whiteSpace: "nowrap", textTransform: "capitalize", color: tab === t ? colors.accent : colors.textFaint, borderBottom: tab === t ? `2px solid ${colors.accent}` : "2px solid transparent" }}>
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium capitalize transition ${tab === t ? "border-maroon-700 text-maroon-800" : "border-transparent text-slate-500 hover:text-slate-700"}`}
+          >
             {t}
-          </span>
+          </button>
         ))}
       </div>
 
       {tab === "overview" && (
-        <div>
-          <KpiRow
-            kpis={[
-              { label: "Availability (90d)", value: `${availPct}%`, color: availabilityColor(availPct), detail: "This asset" },
-              { label: "Downtime (90d)", value: `${asset.downtimeDays90d}d`, detail: `${pastIssues.length} resolved issue${pastIssues.length !== 1 ? "s" : ""}` },
-              { label: "Avg. repair time", value: pastIssues.length > 0 ? `${Math.round((pastIssues.reduce((s, h) => s + h.downtimeDays, 0) / pastIssues.length) * 10) / 10}d` : "—", detail: "MTTR, this asset" },
-            ]}
-          />
+        <div className="space-y-4">
+          <KpiGrid>
+            <KpiCard label="Availability (90d)" value={`${availPct}%`} icon={Percent} accent={avail.accent} iconBg={avail.iconBg} hint="This asset" />
+            <KpiCard label="Downtime (90d)" value={`${asset.downtimeDays90d}d`} icon={Clock} accent="text-slate-700" iconBg="bg-slate-100" hint={`${pastIssues.length} resolved issue${pastIssues.length !== 1 ? "s" : ""}`} />
+            <KpiCard
+              label="Avg. repair time"
+              value={pastIssues.length > 0 ? `${Math.round((pastIssues.reduce((s, h) => s + h.downtimeDays, 0) / pastIssues.length) * 10) / 10}d` : "—"}
+              icon={Wrench}
+              accent="text-slate-700"
+              iconBg="bg-slate-100"
+              hint="MTTR, this asset"
+            />
+          </KpiGrid>
+
           {activeIssue && (
-            <div style={{ background: "#1a1310", border: "1px solid #3a2318", borderRadius: 10, padding: "14px 16px", marginBottom: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-                <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#f0997b" }}>Active issue</p>
+            <div className="card border-red-100 bg-red-50/60 p-4">
+              <div className="mb-2 flex items-start justify-between">
+                <p className="text-sm font-bold text-red-800">Active issue</p>
                 {canManage && (
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={() => setShowEditIssue(true)} style={{ fontSize: 11.5, color: "#f0997b", background: "transparent", border: "1px solid #3a2318", borderRadius: 5, padding: "3px 9px", cursor: "pointer" }}>Edit</button>
-                    <button onClick={() => setShowResolve(true)} style={{ fontSize: 11.5, color: colors.ok, background: colors.okBg, border: "1px solid #3a5a1a", borderRadius: 5, padding: "3px 9px", cursor: "pointer" }}>Resolve</button>
+                  <div className="flex gap-1.5">
+                    <button type="button" onClick={() => setShowEditIssue(true)} className="rounded-md border border-red-200 px-2.5 py-1 text-xs font-semibold text-red-700 hover:bg-red-100">
+                      Edit
+                    </button>
+                    <button type="button" onClick={() => setShowResolve(true)} className="rounded-md bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-200">
+                      Resolve
+                    </button>
                   </div>
                 )}
               </div>
-              <p style={{ margin: "0 0 4px", fontSize: 14, color: colors.text }}>{activeIssue.description}</p>
-              <p style={{ margin: 0, fontSize: 12.5, color: colors.textDim }}>Identified {fmtDate(activeIssue.identifiedAt)} · Expected return {activeIssue.returnEta ? fmtDate(activeIssue.returnEta) : "TBD"}</p>
-              <div style={{ display: "flex", gap: 16, marginTop: 10, fontSize: 12.5, color: colors.textDim }}>
-                <span style={{ display: "flex", alignItems: "center", gap: 4 }}><User size={13} />{activeIssue.responsible}</span>
-                {activeIssue.woNumber && <span style={{ display: "flex", alignItems: "center", gap: 4 }}><ExternalLink size={13} />{activeIssue.woNumber}</span>}
+              <p className="mb-1 text-sm text-slate-800">{activeIssue.description}</p>
+              <p className="text-xs text-slate-500">
+                Identified {fmtDate(activeIssue.identifiedAt)} · Expected return {activeIssue.returnEta ? fmtDate(activeIssue.returnEta) : "TBD"}
+              </p>
+              <div className="mt-2.5 flex gap-4 text-xs text-slate-500">
+                <span className="flex items-center gap-1">
+                  <User className="h-3 w-3" />
+                  {activeIssue.responsible}
+                </span>
+                {activeIssue.woNumber && (
+                  <span className="flex items-center gap-1">
+                    <ExternalLink className="h-3 w-3" />
+                    {activeIssue.woNumber}
+                  </span>
+                )}
               </div>
-              <p style={{ margin: "8px 0 0", fontSize: 11, color: "#5a4234" }}>Last updated {new Date(activeIssue.updatedAt).toLocaleString()}</p>
+              <p className="mt-2 text-[11px] text-red-400">Last updated {new Date(activeIssue.updatedAt).toLocaleString()}</p>
             </div>
           )}
+
           <InfoCard title="Nameplate data" rows={{ "Asset number": asset.assetNumber, ...nameplate, Manufacturer: asset.manufacturer, Model: asset.model, "Serial number": asset.serial }} full />
         </div>
       )}
@@ -138,100 +173,132 @@ export function EquipmentProfileContent({
       {tab === "issues" && (
         <div>
           {activeIssue ? (
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <p style={{ fontSize: 12.5, fontWeight: 600, color: colors.textGhost, textTransform: "uppercase", letterSpacing: 0.5, margin: 0 }}>Active</p>
+            <div className="mb-5">
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">Active</p>
                 {canManage && (
-                  <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={() => setShowEditIssue(true)} style={{ fontSize: 11.5, color: colors.textDim, background: "transparent", border: `1px solid ${colors.border}`, borderRadius: 5, padding: "3px 9px", cursor: "pointer" }}>Edit</button>
-                    <button onClick={() => setShowResolve(true)} style={{ fontSize: 11.5, color: colors.ok, background: colors.okBg, border: "1px solid #3a5a1a", borderRadius: 5, padding: "3px 9px", cursor: "pointer" }}>Resolve</button>
+                  <div className="flex gap-1.5">
+                    <button type="button" onClick={() => setShowEditIssue(true)} className="btn-secondary px-2.5 py-1 text-xs">
+                      Edit
+                    </button>
+                    <button type="button" onClick={() => setShowResolve(true)} className="rounded-md bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-200">
+                      Resolve
+                    </button>
                   </div>
                 )}
               </div>
-              <div style={{ background: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: 10, padding: "14px 16px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-                  <p style={{ margin: 0, fontSize: 14, color: colors.text }}>{activeIssue.description}</p>
+              <div className="card p-4">
+                <div className="mb-2.5 flex justify-between gap-3">
+                  <p className="text-sm text-slate-800">{activeIssue.description}</p>
                   <StatusBadge status={activeIssue.condition === "unavailable" ? "unavailable" : "limited"} />
                 </div>
-                <table style={{ width: "100%", fontSize: 12.5 }}>
+                <table className="w-full text-sm">
                   <tbody>
-                    <tr><td style={{ color: colors.textGhost, padding: "3px 0" }}>Next step</td><td style={{ textAlign: "right", color: colors.textMuted }}>{activeIssue.nextStep}</td></tr>
-                    <tr><td style={{ color: colors.textGhost, padding: "3px 0" }}>Responsible</td><td style={{ textAlign: "right", color: colors.textMuted }}>{activeIssue.responsible}</td></tr>
-                    {activeIssue.partsEta && <tr><td style={{ color: colors.textGhost, padding: "3px 0" }}>Parts ETA</td><td style={{ textAlign: "right", color: colors.textMuted }}>{fmtDate(activeIssue.partsEta)}</td></tr>}
-                    <tr><td style={{ color: colors.textGhost, padding: "3px 0" }}>Return ETA</td><td style={{ textAlign: "right", color: colors.textMuted }}>{activeIssue.returnEta ? fmtDate(activeIssue.returnEta) : "—"}</td></tr>
-                    <tr><td style={{ color: colors.textGhost, padding: "3px 0" }}>Work order</td><td style={{ textAlign: "right", color: colors.accent }}>{activeIssue.woNumber || "—"}</td></tr>
+                    <tr className="border-t border-slate-100">
+                      <td className="py-1.5 text-slate-500">Next step</td>
+                      <td className="py-1.5 text-right text-slate-800">{activeIssue.nextStep}</td>
+                    </tr>
+                    <tr className="border-t border-slate-100">
+                      <td className="py-1.5 text-slate-500">Responsible</td>
+                      <td className="py-1.5 text-right text-slate-800">{activeIssue.responsible}</td>
+                    </tr>
+                    {activeIssue.partsEta && (
+                      <tr className="border-t border-slate-100">
+                        <td className="py-1.5 text-slate-500">Parts ETA</td>
+                        <td className="py-1.5 text-right text-slate-800">{fmtDate(activeIssue.partsEta)}</td>
+                      </tr>
+                    )}
+                    <tr className="border-t border-slate-100">
+                      <td className="py-1.5 text-slate-500">Return ETA</td>
+                      <td className="py-1.5 text-right text-slate-800">{activeIssue.returnEta ? fmtDate(activeIssue.returnEta) : "—"}</td>
+                    </tr>
+                    <tr className="border-t border-slate-100">
+                      <td className="py-1.5 text-slate-500">Work order</td>
+                      <td className="py-1.5 text-right text-maroon-700">{activeIssue.woNumber || "—"}</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
             </div>
           ) : (
-            <p style={{ fontSize: 13.5, color: colors.textGhost, marginBottom: 20 }}>No active issue.</p>
+            <p className="mb-5 text-sm text-slate-500">No active issue.</p>
           )}
-          <p style={{ fontSize: 12.5, fontWeight: 600, color: colors.textGhost, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>Past</p>
-          {pastIssues.length === 0 && <p style={{ fontSize: 13.5, color: colors.textGhost }}>No prior issues on record.</p>}
-          {pastIssues.map((h) => (
-            <div key={h.id} style={{ padding: "10px 0", borderTop: `1px solid ${colors.borderSubtle}` }}>
-              <p style={{ margin: "0 0 3px", fontSize: 13.5, color: colors.textMuted }}>{h.description}</p>
-              <p style={{ margin: 0, fontSize: 12, color: colors.textGhost }}>
-                Resolved {fmtDate(h.resolvedAt)} · {h.downtimeDays} day{h.downtimeDays !== 1 ? "s" : ""} downtime · Root cause: {h.rootCause} {h.woNumber && <>· <span style={{ color: colors.accent }}>{h.woNumber}</span></>}
-              </p>
-            </div>
-          ))}
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">Past</p>
+          {pastIssues.length === 0 && <p className="text-sm text-slate-500">No prior issues on record.</p>}
+          <div className="divide-y divide-slate-100">
+            {pastIssues.map((h) => (
+              <div key={h.id} className="py-2.5">
+                <p className="mb-0.5 text-sm text-slate-700">{h.description}</p>
+                <p className="text-xs text-slate-400">
+                  Resolved {fmtDate(h.resolvedAt)} · {h.downtimeDays} day{h.downtimeDays !== 1 ? "s" : ""} downtime · Root cause: {h.rootCause}{" "}
+                  {h.woNumber && (
+                    <>
+                      · <span className="text-maroon-700">{h.woNumber}</span>
+                    </>
+                  )}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
       {tab === "updates" && (
-        <div>
+        <div className="divide-y divide-slate-100">
           {activeIssue && activeIssue.notes.length > 0 ? (
-            [...activeIssue.notes].reverse().map((n, i) => (
-              <div key={n.id} style={{ display: "flex", gap: 10, padding: "10px 0", borderTop: i === 0 ? "none" : `1px solid ${colors.borderSubtle}` }}>
-                <Clock size={14} color={colors.textGhost} style={{ marginTop: 2, flexShrink: 0 }} />
-                <p style={{ margin: 0, fontSize: 13.5, color: colors.textMuted }}>{n.body}</p>
+            [...activeIssue.notes].reverse().map((n) => (
+              <div key={n.id} className="flex gap-2.5 py-2.5">
+                <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
+                <p className="text-sm text-slate-700">{n.body}</p>
               </div>
             ))
           ) : (
-            <p style={{ fontSize: 13.5, color: colors.textGhost }}>No recent updates — updates appear here as an active issue progresses.</p>
+            <p className="py-2.5 text-sm text-slate-500">No recent updates — updates appear here as an active issue progresses.</p>
           )}
         </div>
       )}
 
       {tab === "maintenance" && (
         <div>
-          <p style={{ fontSize: 12.5, color: colors.textGhost, marginBottom: 14 }}>Major maintenance events on this asset. Work order detail lives in AIM.</p>
+          <p className="mb-3.5 text-xs text-slate-500">Major maintenance events on this asset. Work order detail lives in AIM.</p>
           {maintenance.length === 0 ? (
             <EmptyState icon={Box} title="No major maintenance on record" detail="Overhauls, replacements, and tests will appear here." />
           ) : (
-            maintenance.map((m, i) => (
-              <div key={m.id} style={{ display: "flex", gap: 12, padding: "12px 0", borderTop: i === 0 ? "none" : `1px solid ${colors.borderSubtle}` }}>
-                <span style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: colors.textGhost, width: 84, flexShrink: 0, paddingTop: 2 }}>{fmtDate(m.date)}</span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: colors.accent, padding: "1px 8px", borderRadius: 4, background: "rgba(124,196,240,0.1)", textTransform: "capitalize" }}>{m.type.replace("_", " ")}</span>
+            <div className="divide-y divide-slate-100">
+              {maintenance.map((m) => (
+                <div key={m.id} className="flex gap-3 py-3">
+                  <span className="w-20 shrink-0 pt-0.5 font-mono text-[11px] text-slate-400">{fmtDate(m.date)}</span>
+                  <div className="flex-1">
+                    <span className="mb-0.5 inline-block rounded-full bg-maroon-50 px-2 py-0.5 text-[11px] font-semibold capitalize text-maroon-700">{m.type.replace("_", " ")}</span>
+                    <p className="text-sm text-slate-700">{m.description}</p>
+                    <p className="text-[11px] text-slate-400">{m.woNumber}</p>
                   </div>
-                  <p style={{ margin: "0 0 2px", fontSize: 13.5, color: colors.textMuted }}>{m.description}</p>
-                  <p style={{ margin: 0, fontSize: 11.5, color: colors.textGhost }}>{m.woNumber}</p>
                 </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
       )}
 
       {tab === "documents" && (
         <div>
-          <p style={{ fontSize: 12.5, color: colors.textGhost, marginBottom: 14 }}>Datasheets, manuals, certificates, and photos for this asset.</p>
+          <p className="mb-3.5 text-xs text-slate-500">Datasheets, manuals, certificates, and photos for this asset.</p>
           {documents.length === 0 ? (
             <EmptyState icon={Search} title="No documents uploaded yet" detail="Manuals, certificates, and photos for this asset will appear here." />
           ) : (
-            documents.map((d, i) => (
-              <a key={d.id} href={d.fileUrl} target="_blank" rel="noreferrer" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "11px 0", borderTop: i === 0 ? "none" : `1px solid ${colors.borderSubtle}` }}>
-                <div>
-                  <p style={{ margin: "0 0 2px", fontSize: 13.5, color: colors.textMuted }}>{d.name}</p>
-                  <p style={{ margin: 0, fontSize: 11.5, color: colors.textGhost, textTransform: "capitalize" }}>{d.type} · {fmtDate(d.uploadedAt)}</p>
-                </div>
-                <ExternalLink size={14} color={colors.textGhost} />
-              </a>
-            ))
+            <div className="divide-y divide-slate-100">
+              {documents.map((d) => (
+                <a key={d.id} href={d.fileUrl} target="_blank" rel="noreferrer" className="flex items-center justify-between py-2.5 hover:text-maroon-800">
+                  <div>
+                    <p className="text-sm text-slate-700">{d.name}</p>
+                    <p className="text-[11px] capitalize text-slate-400">
+                      {d.type} · {fmtDate(d.uploadedAt)}
+                    </p>
+                  </div>
+                  <ExternalLink className="h-3.5 w-3.5 text-slate-400" />
+                </a>
+              ))}
+            </div>
           )}
         </div>
       )}
