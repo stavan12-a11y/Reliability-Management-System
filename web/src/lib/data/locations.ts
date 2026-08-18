@@ -23,7 +23,7 @@ export async function getLocationSummaries() {
     }),
     prisma.issueHistory.findMany({
       where: { asset: { deletedAt: null } },
-      select: { assetId: true, downtimeDays: true },
+      select: { assetId: true, downtimeDays: true, resolvedAt: true },
     }),
     prisma.issue.findMany({
       where: { asset: { deletedAt: null } },

@@ -70,6 +70,113 @@ export function EmptyState({ icon: Icon, title, detail }: { icon: ComponentType<
   );
 }
 
+// Hand-rolled SVG charts (no charting library dependency): a simple line
+// chart for the availability trend and a Pareto chart (count bars + a
+// cumulative-% line) for failure-mode analysis. Both use fixed maroon-700
+// (#8b1d40) / slate hex values directly since SVG attributes can't read
+// Tailwind's CSS variables.
+
+export function TrendLineChart({ data }: { data: { label: string; value: number }[] }) {
+  if (data.length === 0) return null;
+  const width = 640;
+  const height = 160;
+  const padX = 24;
+  const padY = 24;
+  const values = data.map((d) => d.value);
+  const max = Math.max(100, ...values);
+  const min = Math.min(...values, max - 10);
+  const range = max - min || 1;
+
+  const points = data.map((d, i) => ({
+    ...d,
+    x: padX + (i / Math.max(data.length - 1, 1)) * (width - padX * 2),
+    y: padY + (1 - (d.value - min) / range) * (height - padY * 2),
+  }));
+  const pathD = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full" style={{ height: 180 }}>
+      {[0, 0.5, 1].map((t) => {
+        const y = padY + t * (height - padY * 2);
+        const val = Math.round(max - t * range);
+        return (
+          <g key={t}>
+            <line x1={padX} y1={y} x2={width - padX} y2={y} stroke="#e2e8f0" strokeWidth={1} />
+            <text x={padX} y={y - 4} fontSize="10" fill="#94a3b8">
+              {val}%
+            </text>
+          </g>
+        );
+      })}
+      <path d={pathD} fill="none" stroke="#8b1d40" strokeWidth={2} />
+      {points.map((p, i) => (
+        <g key={i}>
+          <circle cx={p.x} cy={p.y} r={3.5} fill="#8b1d40" />
+          <text x={p.x} y={height - 4} fontSize="10" fill="#64748b" textAnchor="middle">
+            {p.label}
+          </text>
+          <title>{`${p.label}: ${p.value}%`}</title>
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+export function ParetoChart({ data }: { data: { label: string; count: number }[] }) {
+  if (data.length === 0) return null;
+  const width = 640;
+  const height = 220;
+  const padX = 16;
+  const padTop = 16;
+  const padBottom = 46;
+  const chartH = height - padTop - padBottom;
+  const barGap = 10;
+  const barW = Math.min(56, (width - padX * 2 - barGap * (data.length - 1)) / data.length);
+  const total = data.reduce((s, d) => s + d.count, 0);
+  const maxCount = Math.max(...data.map((d) => d.count));
+
+  const points = data.map((d, i) => {
+    const cumCount = data.slice(0, i + 1).reduce((s, e) => s + e.count, 0);
+    const cumPct = (cumCount / total) * 100;
+    const x = padX + i * (barW + barGap) + barW / 2;
+    const barH = (d.count / maxCount) * chartH;
+    return { ...d, x, barH, barY: padTop + (chartH - barH), lineY: padTop + (1 - cumPct / 100) * chartH, cumPct };
+  });
+  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.lineY.toFixed(1)}`).join(" ");
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full" style={{ height: 240 }}>
+      {[0, 50, 100].map((pct) => {
+        const y = padTop + (1 - pct / 100) * chartH;
+        return (
+          <g key={pct}>
+            <line x1={padX} y1={y} x2={width - padX} y2={y} stroke="#e2e8f0" strokeWidth={1} />
+            <text x={width - padX} y={y - 3} fontSize="10" fill="#94a3b8" textAnchor="end">
+              {pct}%
+            </text>
+          </g>
+        );
+      })}
+      {points.map((p) => (
+        <g key={p.label}>
+          <rect x={p.x - barW / 2} y={p.barY} width={barW} height={p.barH} rx={3} fill="#b32a51" opacity={0.85} />
+          <text x={p.x} y={padTop + chartH + 14} fontSize="10" fill="#475569" textAnchor="middle">
+            {p.count}
+          </text>
+          <text x={p.x} y={padTop + chartH + 30} fontSize="9" fill="#64748b" textAnchor="middle">
+            {p.label.length > 12 ? p.label.slice(0, 11) + "…" : p.label}
+          </text>
+          <title>{`${p.label}: ${p.count} (${p.cumPct.toFixed(0)}% cumulative)`}</title>
+        </g>
+      ))}
+      <path d={linePath} fill="none" stroke="#8b1d40" strokeWidth={2} />
+      {points.map((p) => (
+        <circle key={`${p.label}-dot`} cx={p.x} cy={p.lineY} r={3} fill="#8b1d40" />
+      ))}
+    </svg>
+  );
+}
+
 export function InfoCard({ title, rows, full }: { title: string; rows: Record<string, ReactNode>; full?: boolean }) {
   return (
     <div className={`card p-4 ${full ? "sm:col-span-2" : ""}`}>

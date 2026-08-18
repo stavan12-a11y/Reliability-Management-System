@@ -2,7 +2,7 @@ import { getEquipmentList } from "@/lib/data/equipment";
 import { getActiveIssues } from "@/lib/data/issues";
 import { getIssueHistory } from "@/lib/data/history";
 import { getLocationSummaries } from "@/lib/data/locations";
-import { fleetKpis } from "@/lib/data/kpis";
+import { fleetKpis, monthlyAvailabilityTrend } from "@/lib/data/kpis";
 import { OverviewContent } from "./overview-content";
 
 export default async function OverviewPage() {
@@ -21,6 +21,7 @@ export default async function OverviewPage() {
   };
 
   const fleetStats = fleetKpis(equipment, history);
+  const trend = monthlyAvailabilityTrend(equipment.length, history, 6);
 
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
@@ -32,5 +33,5 @@ export default async function OverviewPage() {
     return (critScoreByAsset.get(b.assetId) || 0) - (critScoreByAsset.get(a.assetId) || 0);
   });
 
-  return <OverviewContent counts={counts} fleetStats={fleetStats} issues={sortedIssues} newSinceYesterday={newSinceYesterday} locations={locationSummaries} />;
+  return <OverviewContent counts={counts} fleetStats={fleetStats} trend={trend} issues={sortedIssues} newSinceYesterday={newSinceYesterday} locations={locationSummaries} />;
 }

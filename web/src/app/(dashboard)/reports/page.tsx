@@ -23,5 +23,17 @@ export default async function ReportsPage() {
   });
   const recurring = Object.entries(assetCounts).filter(([, c]) => c > 1);
 
-  return <ReportsContent byClass={byClass} totalDowntime={totalDowntime} overdueCount={overdueCount} recurring={recurring} />;
+  // Pareto analysis: which failure modes account for the most resolved
+  // issues, ranked descending so the "vital few" causes are obvious.
+  const failureModeCounts: Record<string, number> = {};
+  history.forEach((h) => {
+    if (!h.failureMode) return;
+    const label = h.failureMode.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    failureModeCounts[label] = (failureModeCounts[label] || 0) + 1;
+  });
+  const failureModePareto = Object.entries(failureModeCounts)
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count);
+
+  return <ReportsContent byClass={byClass} totalDowntime={totalDowntime} overdueCount={overdueCount} recurring={recurring} failureModePareto={failureModePareto} />;
 }

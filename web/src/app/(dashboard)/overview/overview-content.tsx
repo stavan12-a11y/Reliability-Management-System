@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, CheckCircle2, Percent, ShieldAlert, Clock, AlertTriangle, Wrench, MapPin, ChevronRight } from "lucide-react";
-import { KpiCard, KpiGrid, SectionHeader, EmptyState, StatusBadge } from "@/components/ui";
+import { KpiCard, KpiGrid, SectionHeader, EmptyState, StatusBadge, TrendLineChart } from "@/components/ui";
 import type { getActiveIssues } from "@/lib/data/issues";
 import type { getLocationSummaries } from "@/lib/data/locations";
 
 type Issue = Awaited<ReturnType<typeof getActiveIssues>>[number];
 type LocationSummary = Awaited<ReturnType<typeof getLocationSummaries>>[number];
+type TrendPoint = { label: string; value: number };
 
 function availabilityAccent(pct: number) {
   if (pct >= 97) return { accent: "text-emerald-600", iconBg: "bg-emerald-50" };
@@ -19,12 +20,14 @@ function availabilityAccent(pct: number) {
 export function OverviewContent({
   counts,
   fleetStats,
+  trend,
   issues,
   newSinceYesterday,
   locations,
 }: {
   counts: { unavailable: number; limited: number; overdue: number; awaitingParts: number };
-  fleetStats: { availabilityPct: number; criticalAvailabilityPct: number; mttrDays: number | null };
+  fleetStats: { availabilityPct: number; criticalAvailabilityPct: number; mttrDays: number | null; mtbfDays: number | null };
+  trend: TrendPoint[];
   issues: Issue[];
   newSinceYesterday: number;
   locations: LocationSummary[];
@@ -78,6 +81,20 @@ export function OverviewContent({
           onClick={() => router.push("/issues?tab=limited")}
         />
       </KpiGrid>
+
+      <div className="card p-4">
+        <div className="mb-1 flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm font-bold text-slate-900">Fleet availability trend</p>
+            <p className="text-xs text-slate-500">Last 6 months, from resolved-issue downtime</p>
+          </div>
+          <div className="text-right">
+            <p className="text-lg font-bold leading-none text-slate-900">{fleetStats.mtbfDays != null ? `${fleetStats.mtbfDays}d` : "—"}</p>
+            <p className="mt-1 text-[11px] text-slate-400">MTBF (90d) · avg. time between failures</p>
+          </div>
+        </div>
+        <TrendLineChart data={trend} />
+      </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
         <div>

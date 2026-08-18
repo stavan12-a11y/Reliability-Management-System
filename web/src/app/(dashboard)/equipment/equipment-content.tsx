@@ -64,11 +64,12 @@ export function EquipmentContent({
     const availabilityPct = totalDays > 0 ? Math.round(((totalDays - totalDowntime) / totalDays) * 1000) / 10 : 100;
     const relevantHistory = history.filter((h) => ids.has(h.assetId));
     const mttrDays = relevantHistory.length > 0 ? Math.round((relevantHistory.reduce((s, h) => s + h.downtimeDays, 0) / relevantHistory.length) * 10) / 10 : null;
+    const mtbfDays = relevantHistory.length > 0 ? Math.round(((totalDays - totalDowntime) / relevantHistory.length) * 10) / 10 : null;
     const activeCount = activeIssues.filter((i) => ids.has(i.assetId)).length;
     const available = inTab.filter((e) => e.status === "available").length;
     const limited = inTab.filter((e) => e.status === "limited").length;
     const unavailable = inTab.filter((e) => e.status === "unavailable").length;
-    return { availabilityPct, mttrDays, activeCount, available, limited, unavailable };
+    return { availabilityPct, mttrDays, mtbfDays, activeCount, available, limited, unavailable };
   }, [inTab, history, activeIssues]);
 
   const avail = availabilityAccent(tabKpis.availabilityPct);
@@ -115,6 +116,7 @@ export function EquipmentContent({
         <KpiCard label="Assets" value={inTab.length} icon={Box} accent="text-slate-700" iconBg="bg-slate-100" hint={classTab === "All" ? "All equipment" : `${classTab}s, all locations`} />
         <KpiCard label="Availability (90d)" value={`${tabKpis.availabilityPct}%`} icon={Percent} accent={avail.accent} iconBg={avail.iconBg} />
         <KpiCard label="Avg. repair time" value={tabKpis.mttrDays != null ? `${tabKpis.mttrDays}d` : "—"} icon={Clock} accent="text-slate-700" iconBg="bg-slate-100" hint="MTTR" />
+        <KpiCard label="Time between failures" value={tabKpis.mtbfDays != null ? `${tabKpis.mtbfDays}d` : "—"} icon={Clock} accent="text-slate-700" iconBg="bg-slate-100" hint="MTBF" />
         <KpiCard
           label="Active issues"
           value={tabKpis.activeCount}

@@ -138,6 +138,14 @@ export function EquipmentProfileContent({
               iconBg="bg-slate-100"
               hint="MTTR, this asset"
             />
+            <KpiCard
+              label="Time between failures"
+              value={pastIssues.length > 0 ? `${Math.round(((90 - asset.downtimeDays90d) / pastIssues.length) * 10) / 10}d` : "—"}
+              icon={Wrench}
+              accent="text-slate-700"
+              iconBg="bg-slate-100"
+              hint="MTBF, this asset"
+            />
           </KpiGrid>
 
           {activeIssue && (

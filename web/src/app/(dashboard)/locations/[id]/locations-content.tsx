@@ -33,7 +33,7 @@ export function LocationsContent({
   systems: System[];
   equipment: Equipment[];
   issues: Issue[];
-  locStats: { availabilityPct: number; criticalAvailabilityPct: number; mttrDays: number | null };
+  locStats: { availabilityPct: number; criticalAvailabilityPct: number; mttrDays: number | null; mtbfDays: number | null };
   counts: { available: number; limited: number; unavailable: number };
 }) {
   const router = useRouter();
@@ -66,6 +66,7 @@ export function LocationsContent({
         <KpiCard label="Availability (90d)" value={`${locStats.availabilityPct}%`} icon={Percent} accent={fleetAvail.accent} iconBg={fleetAvail.iconBg} hint="This plant" />
         <KpiCard label="Critical availability" value={`${locStats.criticalAvailabilityPct}%`} icon={ShieldAlert} accent={criticalAvail.accent} iconBg={criticalAvail.iconBg} hint="Critical-tier only" />
         <KpiCard label="Avg. repair time" value={locStats.mttrDays != null ? `${locStats.mttrDays}d` : "—"} icon={Clock} accent="text-slate-700" iconBg="bg-slate-100" hint="MTTR, this plant" />
+        <KpiCard label="Avg. time between failures" value={locStats.mtbfDays != null ? `${locStats.mtbfDays}d` : "—"} icon={Clock} accent="text-slate-700" iconBg="bg-slate-100" hint="MTBF, this plant" />
         <KpiCard label="Available" value={counts.available} icon={ShieldAlert} accent="text-emerald-600" iconBg="bg-emerald-50" />
         <KpiCard label="Limited" value={counts.limited} icon={ShieldAlert} accent={counts.limited > 0 ? "text-amber-600" : "text-emerald-600"} iconBg={counts.limited > 0 ? "bg-amber-50" : "bg-emerald-50"} />
       </KpiGrid>
