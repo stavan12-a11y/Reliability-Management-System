@@ -14,8 +14,20 @@ function createClient() {
   return new PrismaClient({ adapter });
 }
 
-export const prisma = globalThis.__prisma ?? createClient();
-
-if (process.env.NODE_ENV !== "production") {
-  globalThis.__prisma = prisma;
+// Constructing PrismaClient reads DATABASE_URL immediately, which would
+// throw during Next.js's build-time route analysis (it imports every route
+// module to inspect config, without ever calling the handler). Deferring
+// construction behind this proxy means DATABASE_URL is only required once a
+// request handler actually touches the database, not at build time.
+function getClient(): PrismaClient {
+  if (!globalThis.__prisma) {
+    globalThis.__prisma = createClient();
+  }
+  return globalThis.__prisma;
 }
+
+export const prisma: PrismaClient = new Proxy({} as PrismaClient, {
+  get(_target, prop, receiver) {
+    return Reflect.get(getClient(), prop, receiver);
+  },
+});
