@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { ModalShell, ModalActions } from "./ui";
 import { daysBetween } from "@/lib/data/kpis";
 import { resolveIssueFull, downgradeIssue } from "@/lib/actions/issues";
+import { FAILURE_MODES, COMPONENTS } from "@/lib/rag/vocab";
 
 export function ResolveIssueModal({
   issue,
@@ -15,6 +16,8 @@ export function ResolveIssueModal({
   const [resolveType, setResolveType] = useState<"full" | "downgrade">("full");
   const [workDone, setWorkDone] = useState("");
   const [rootCause, setRootCause] = useState("");
+  const [failureMode, setFailureMode] = useState("");
+  const [component, setComponent] = useState("");
   const [resolvedDate, setResolvedDate] = useState(new Date().toISOString().slice(0, 10));
   const [downgradeNote, setDowngradeNote] = useState("");
   const [pending, startTransition] = useTransition();
@@ -31,7 +34,7 @@ export function ResolveIssueModal({
       try {
         if (resolveType === "full") {
           if (!canSubmitFull) return;
-          await resolveIssueFull(issue.id, { workDone, rootCause, resolvedDate });
+          await resolveIssueFull(issue.id, { workDone, rootCause, resolvedDate, failureMode: failureMode || null, component: component || null });
         } else {
           if (!canSubmitDowngrade) return;
           await downgradeIssue(issue.id, { note: downgradeNote });
@@ -75,6 +78,31 @@ export function ResolveIssueModal({
             <span className="label">Root cause</span>
             <input value={rootCause} onChange={(e) => setRootCause(e.target.value)} placeholder="e.g. Bearing wear from lubrication gap" className="input" />
           </label>
+          <div className="mb-3 grid grid-cols-2 gap-2.5">
+            <label className="block">
+              <span className="label">Failure mode (optional)</span>
+              <select value={failureMode} onChange={(e) => setFailureMode(e.target.value)} className="input">
+                <option value="">Not classified</option>
+                {FAILURE_MODES.map((f) => (
+                  <option key={f.value} value={f.value}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block">
+              <span className="label">Component (optional)</span>
+              <select value={component} onChange={(e) => setComponent(e.target.value)} className="input">
+                <option value="">Not classified</option>
+                {COMPONENTS.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <p className="mb-1.5 text-[11px] text-slate-400">Classifying the failure improves the AI history lookup on this asset&apos;s profile — worth a few seconds if you know it.</p>
           <label className="mb-2 block">
             <span className="label">Resolved date</span>
             <input type="date" value={resolvedDate} onChange={(e) => setResolvedDate(e.target.value)} className="input" />

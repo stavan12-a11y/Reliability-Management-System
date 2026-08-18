@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
-    "import:equipment": "tsx prisma/import-equipment.ts"
+    "import:equipment": "tsx prisma/import-equipment.ts",
+    "embeddings:backfill": "tsx prisma/backfill-embeddings.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
@@ -20,6 +21,7 @@
     "lucide-react": "^1.31.0",
     "next": "16.3.1",
     "next-auth": "^5.0.0-beta.32",
+    "openai": "^7.5.0",
     "prisma": "^7.9.1",
     "react": "19.2.8",
     "react-dom": "19.2.8",

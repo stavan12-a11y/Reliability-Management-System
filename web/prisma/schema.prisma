@@ -27,8 +27,8 @@ enum IssueCondition {
   limited
 }
 
-// Controlled vocabulary for Phase 2 (AI history lookup). Columns exist now so
-// resolutions captured today don't need a later backfill — see BUILD_SPEC.md.
+// Controlled vocabulary for Phase 2 (AI history lookup) — see BUILD_SPEC.md
+// and the Phase 2 build instructions for the source list.
 enum FailureMode {
   bearing_failure
   seal_gasket_leak
@@ -37,24 +37,36 @@ enum FailureMode {
   corrosion
   fouling
   overload
+  refrigerant_leak
+  sensor_failure
   human_error
   other
 }
 
+// Union of all class-scoped component vocabularies (Chiller: compressor,
+// condenser, evaporator, control_panel, refrigerant_circuit, motor. Pump:
+// motor, bearing, seal, impeller, coupling. Boiler: burner, refractory,
+// safety_valve, control_panel, tube_bundle. Heat converter: tube_bundle,
+// control_panel, gasket). Valid options per class are enforced at the UI
+// layer, not by separate Postgres types.
 enum Component {
   compressor
   condenser
   evaporator
   control_panel
+  refrigerant_circuit
   motor
   bearing
   seal
   impeller
+  coupling
   burner
   refractory
+  safety_valve
   tube_bundle
-  valve
+  gasket
   sensor
+  valve
   other
 }
 
@@ -183,18 +195,22 @@ model IssueNote {
 }
 
 model IssueHistory {
-  id           String       @id @default(uuid())
+  id           String                   @id @default(uuid())
   assetId      String
   description  String
   rootCause    String
   failureMode  FailureMode?
   component    Component?
-  resolvedAt   DateTime     @db.Date
-  identifiedAt DateTime     @db.Date
+  resolvedAt   DateTime                 @db.Date
+  identifiedAt DateTime                 @db.Date
   downtimeDays Int
   woNumber     String?
   resolvedById String?
-  createdAt    DateTime     @default(now())
+  createdAt    DateTime                 @default(now())
+  // OpenAI text-embedding-3-small — 1536 dims. Unsupported: Prisma has no
+  // native pgvector type, so this column is only reachable via $queryRaw /
+  // $executeRaw (see lib/rag/embeddings.ts).
+  embedding    Unsupported("vector(1536)")?
 
   asset      Equipment @relation(fields: [assetId], references: [id])
   resolvedBy User?     @relation("HistoryResolvedBy", fields: [resolvedById], references: [id])
@@ -209,9 +225,12 @@ model MaintenanceLog {
   date        DateTime        @db.Date
   type        MaintenanceType
   description String
+  failureMode FailureMode?
+  component   Component?
   woNumber    String?
   createdById String?
   createdAt   DateTime        @default(now())
+  embedding   Unsupported("vector(1536)")?
 
   asset     Equipment @relation(fields: [assetId], references: [id])
   createdBy User?     @relation(fields: [createdById], references: [id])

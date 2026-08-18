@@ -76,20 +76,20 @@ async function main() {
 
   console.log("Seeding maintenance log...");
   const MAINTENANCE_LOG = [
-    { id: "M-311", assetId: "CHLR003", date: "2025-03-14", type: "overhaul", description: "Full compressor overhaul, replaced bearings and seals", wo: "WO-114800" },
-    { id: "M-298", assetId: "CHLR003", date: "2024-08-02", type: "component_replacement", description: "Replaced oil filter and charged refrigerant", wo: "WO-112100" },
-    { id: "M-340", assetId: "HWP001", date: "2024-10-11", type: "component_replacement", description: "Motor replaced, original motor bearing failure", wo: "WO-113500" },
-    { id: "M-355", assetId: "BLR011", date: "2025-08-20", type: "overhaul", description: "Annual overhaul, refractory inspection, burner tune", wo: "WO-117200" },
-    { id: "M-356", assetId: "BLR011", date: "2025-08-20", type: "test", description: "Hydrostatic test performed, passed", wo: "WO-117200" },
-    { id: "M-330", assetId: "BLR012", date: "2025-08-18", type: "overhaul", description: "Annual overhaul, refractory inspection, burner tune", wo: "WO-117180" },
-    { id: "M-290", assetId: "CHLR002", date: "2024-06-05", type: "component_replacement", description: "Condenser tube cleaning and inspection", wo: "WO-111900" },
+    { id: "M-311", assetId: "CHLR003", date: "2025-03-14", type: "overhaul", description: "Full compressor overhaul, replaced bearings and seals", wo: "WO-114800", failureMode: "bearing_failure", component: "compressor" },
+    { id: "M-298", assetId: "CHLR003", date: "2024-08-02", type: "component_replacement", description: "Replaced oil filter and charged refrigerant", wo: "WO-112100", failureMode: null, component: null },
+    { id: "M-340", assetId: "HWP001", date: "2024-10-11", type: "component_replacement", description: "Motor replaced, original motor bearing failure", wo: "WO-113500", failureMode: "bearing_failure", component: "motor" },
+    { id: "M-355", assetId: "BLR011", date: "2025-08-20", type: "overhaul", description: "Annual overhaul, refractory inspection, burner tune", wo: "WO-117200", failureMode: null, component: null },
+    { id: "M-356", assetId: "BLR011", date: "2025-08-20", type: "test", description: "Hydrostatic test performed, passed", wo: "WO-117200", failureMode: null, component: null },
+    { id: "M-330", assetId: "BLR012", date: "2025-08-18", type: "overhaul", description: "Annual overhaul, refractory inspection, burner tune", wo: "WO-117180", failureMode: null, component: null },
+    { id: "M-290", assetId: "CHLR002", date: "2024-06-05", type: "component_replacement", description: "Condenser tube cleaning and inspection", wo: "WO-111900", failureMode: "fouling", component: "condenser" },
   ] as const;
 
   for (const m of MAINTENANCE_LOG) {
     await prisma.maintenanceLog.upsert({
       where: { id: m.id },
-      update: { assetId: m.assetId, date: new Date(m.date), type: m.type, description: m.description, woNumber: m.wo, createdById: tech.id },
-      create: { id: m.id, assetId: m.assetId, date: new Date(m.date), type: m.type, description: m.description, woNumber: m.wo, createdById: tech.id },
+      update: { assetId: m.assetId, date: new Date(m.date), type: m.type, description: m.description, woNumber: m.wo, failureMode: m.failureMode, component: m.component, createdById: tech.id },
+      create: { id: m.id, assetId: m.assetId, date: new Date(m.date), type: m.type, description: m.description, woNumber: m.wo, failureMode: m.failureMode, component: m.component, createdById: tech.id },
     });
   }
 
@@ -143,12 +143,29 @@ async function main() {
   }
 
   console.log("Seeding issue history...");
+  // 17 records across chiller/boiler/pump/heat-converter assets. CHLR003
+  // carries two bearing_failure records ~16 months apart (H-950, H-951) on
+  // top of its unrelated H-902 refrigerant leak, specifically so the RAG
+  // retrieval has a real repeating-pattern to surface — not just a single
+  // coincidental match. See Phase 2 build instructions.
   const HISTORY = [
-    { id: "H-902", assetId: "CHLR003", description: "Refrigerant leak, low charge", resolved: "2026-05-02", identified: "2026-04-30", downtimeDays: 2, rootCause: "Seal wear", wo: "WO-115210" },
-    { id: "H-887", assetId: "BLR011", description: "Low water cutoff failure", resolved: "2026-03-14", identified: "2026-03-13", downtimeDays: 1, rootCause: "Sensor fouling", wo: "WO-113980" },
-    { id: "H-861", assetId: "CHLR002", description: "Compressor trip on high discharge temp", resolved: "2026-01-22", identified: "2026-01-21", downtimeDays: 1, rootCause: "Condenser fouling", wo: "WO-111500" },
-    { id: "H-840", assetId: "BLR011", description: "Fuel valve actuator failure", resolved: "2025-11-30", identified: "2025-11-29", downtimeDays: 1, rootCause: "Actuator end-of-life", wo: "WO-109200" },
-    { id: "H-820", assetId: "BLR011", description: "Ignition transformer failure", resolved: "2025-09-18", identified: "2025-09-17", downtimeDays: 1, rootCause: "Component failure", wo: "WO-107100" },
+    { id: "H-902", assetId: "CHLR003", description: "Refrigerant leak, low charge", resolved: "2026-05-02", identified: "2026-04-30", downtimeDays: 2, rootCause: "Seal wear at the compressor shaft seal let refrigerant charge slowly leak out over several weeks.", wo: "WO-115210", failureMode: "refrigerant_leak", component: "refrigerant_circuit" },
+    { id: "H-950", assetId: "CHLR003", description: "Compressor bearing failure, excessive vibration on startup", resolved: "2025-02-10", identified: "2025-02-05", downtimeDays: 5, rootCause: "Bearing wear traced to inadequate lubrication interval — grease schedule was extended during a staffing gap.", wo: "WO-116200", failureMode: "bearing_failure", component: "bearing" },
+    { id: "H-951", assetId: "CHLR003", description: "Compressor bearing replaced again after recurring vibration alarm", resolved: "2026-06-15", identified: "2026-06-10", downtimeDays: 5, rootCause: "Same root cause as the Feb 2025 failure — lubrication interval had drifted long again despite the prior corrective action.", wo: "WO-119600", failureMode: "bearing_failure", component: "bearing" },
+    { id: "H-887", assetId: "BLR011", description: "Low water cutoff failure", resolved: "2026-03-14", identified: "2026-03-13", downtimeDays: 1, rootCause: "Sensor fouling from scale buildup caused a false low-water trip.", wo: "WO-113980", failureMode: "sensor_failure", component: "control_panel" },
+    { id: "H-840", assetId: "BLR011", description: "Fuel valve actuator failure", resolved: "2025-11-30", identified: "2025-11-29", downtimeDays: 1, rootCause: "Actuator reached end-of-life; motor windings had degraded from age.", wo: "WO-109200", failureMode: "electrical_fault", component: "burner" },
+    { id: "H-820", assetId: "BLR011", description: "Ignition transformer failure", resolved: "2025-09-18", identified: "2025-09-17", downtimeDays: 1, rootCause: "Ignition transformer winding shorted internally, no external cause found.", wo: "WO-107100", failureMode: "electrical_fault", component: "burner" },
+    { id: "H-861", assetId: "CHLR002", description: "Compressor trip on high discharge temp", resolved: "2026-01-22", identified: "2026-01-21", downtimeDays: 1, rootCause: "Condenser tube fouling from mineral scale reduced heat rejection, driving discharge temp over the trip setpoint.", wo: "WO-111500", failureMode: "fouling", component: "condenser" },
+    { id: "H-995", assetId: "CHLR002", description: "Control panel lockout, no display on HMI", resolved: "2025-06-22", identified: "2025-06-18", downtimeDays: 4, rootCause: "Control panel power supply board failed; replaced under warranty.", wo: "WO-116400", failureMode: "electrical_fault", component: "control_panel" },
+    { id: "H-960", assetId: "CHLR001", description: "Condenser tube fouling reducing chiller efficiency", resolved: "2025-07-20", identified: "2025-07-15", downtimeDays: 5, rootCause: "Mineral scale buildup in condenser tubes from cooling tower water chemistry drift.", wo: "WO-116800", failureMode: "fouling", component: "condenser" },
+    { id: "H-961", assetId: "CHLR010", description: "Evaporator freeze-up, low refrigerant flow", resolved: "2025-10-05", identified: "2025-10-01", downtimeDays: 4, rootCause: "Thermal expansion valve stuck partially closed, starving the evaporator of refrigerant flow.", wo: "WO-117500", failureMode: "control_instrumentation_fault", component: "evaporator" },
+    { id: "H-970", assetId: "HWP001", description: "Motor bearing failure, motor replaced", resolved: "2024-10-11", identified: "2024-10-06", downtimeDays: 5, rootCause: "Motor bearing seized from lubrication breakdown after years in a high-humidity mechanical room.", wo: "WO-113600", failureMode: "bearing_failure", component: "motor" },
+    { id: "H-971", assetId: "HWP001", description: "Mechanical seal leak at pump", resolved: "2026-04-06", identified: "2026-04-02", downtimeDays: 4, rootCause: "Mechanical seal faces wore out from years of service; unrelated to the prior motor bearing failure.", wo: "WO-119200", failureMode: "seal_gasket_leak", component: "seal" },
+    { id: "H-980", assetId: "CHWP001", description: "Pump seal leak, water pooling at base", resolved: "2025-01-13", identified: "2025-01-10", downtimeDays: 3, rootCause: "Mechanical seal degraded from a brief period of dry running during a system drain-down.", wo: "WO-115800", failureMode: "seal_gasket_leak", component: "seal" },
+    { id: "H-981", assetId: "BFWP001", description: "Boiler feed pump bearing failure", resolved: "2025-08-09", identified: "2025-08-05", downtimeDays: 4, rootCause: "Bearing wear accelerated by high-temperature feedwater service; standard bearing grade was undersized for the application.", wo: "WO-116900", failureMode: "bearing_failure", component: "bearing" },
+    { id: "H-990", assetId: "BLR012", description: "Tube corrosion found during internal inspection", resolved: "2025-03-16", identified: "2025-03-12", downtimeDays: 4, rootCause: "Localized pitting corrosion from inconsistent feedwater treatment chemistry.", wo: "WO-115900", failureMode: "corrosion", component: "tube_bundle" },
+    { id: "H-991", assetId: "BLR021", description: "Safety valve failed to reseat properly during annual test", resolved: "2024-12-11", identified: "2024-12-08", downtimeDays: 3, rootCause: "Valve seat had minor scoring from age; reseated after lapping, monitored closely since.", wo: "WO-115100", failureMode: "control_instrumentation_fault", component: "safety_valve" },
+    { id: "H-996", assetId: "HTC001", description: "Tube bundle leak found during inspection", resolved: "2025-02-25", identified: "2025-02-20", downtimeDays: 5, rootCause: "Pinhole corrosion on a single tube from years of dissolved-oxygen exposure in the heating water loop.", wo: "WO-115950", failureMode: "corrosion", component: "tube_bundle" },
   ] as const;
 
   for (const h of HISTORY) {
@@ -164,6 +181,8 @@ async function main() {
         identifiedAt: new Date(h.identified),
         downtimeDays: h.downtimeDays,
         woNumber: h.wo,
+        failureMode: h.failureMode,
+        component: h.component,
         resolvedById: manager.id,
       },
     });
