@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, ChevronRight, Plus, Box, Percent, Clock, AlertTriangle } from "lucide-react";
-import { EmptyState, ExportButton, StatusBadge, KpiCard, KpiGrid, downloadCsv } from "@/components/ui";
+import { EmptyState, ExportButton, StatusBadge, KpiCard, KpiGrid, SectionHeader, ParetoChart, downloadCsv } from "@/components/ui";
 import { AddEquipmentModal } from "@/components/add-equipment-modal";
 import { criticalityTier } from "@/lib/theme";
 import type { getEquipmentList } from "@/lib/data/equipment";
@@ -74,6 +74,25 @@ export function EquipmentContent({
 
   const avail = availabilityAccent(tabKpis.availabilityPct);
 
+  // Failure-mode Pareto, scoped to the selected class — mixing classes
+  // together (e.g. boiler burner faults next to chiller refrigerant leaks)
+  // doesn't tell you anything actionable about either one, so this only
+  // renders once a specific class tab is selected, never for "All".
+  const classPareto = useMemo(() => {
+    if (classTab === "All") return [];
+    const ids = new Set(inTab.map((e) => e.id));
+    const counts: Record<string, number> = {};
+    history.forEach((h) => {
+      if (!ids.has(h.assetId) || !h.failureMode) return;
+      const label = h.failureMode.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+      counts[label] = (counts[label] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .map(([label, count]) => ({ label, count }))
+      .sort((a, b) => b.count - a.count);
+  }, [classTab, inTab, history]);
+  const classParetoTotal = classPareto.reduce((s, d) => s + d.count, 0);
+
   function exportCsv() {
     downloadCsv(
       `equipment-${classTab === "All" ? "register" : classTab.toLowerCase().replace(/\s+/g, "-")}.csv`,
@@ -132,6 +151,18 @@ export function EquipmentContent({
           iconBg={tabKpis.unavailable > 0 ? "bg-red-50" : "bg-emerald-50"}
         />
       </KpiGrid>
+
+      {classTab !== "All" && classPareto.length > 0 && (
+        <div>
+          <SectionHeader title="Failure mode analysis" subtitle={`Pareto — ${classTab}s only, ranked with cumulative %`} />
+          <div className="card p-4">
+            <ParetoChart data={classPareto} />
+            <p className="mt-2 text-center text-[11px] text-slate-400">
+              {classPareto.length} failure mode{classPareto.length !== 1 ? "s" : ""} across {classParetoTotal} resolved issue{classParetoTotal !== 1 ? "s" : ""}
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-2.5">
         <div className="flex h-9 flex-1 items-center gap-2 rounded-lg border border-slate-300 bg-white px-3" style={{ minWidth: 220 }}>

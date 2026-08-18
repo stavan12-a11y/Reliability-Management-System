@@ -1,22 +1,19 @@
 "use client";
 
 import { Clock, AlertTriangle, RefreshCcw, FileSpreadsheet } from "lucide-react";
-import { KpiCard, KpiGrid, SectionHeader, ParetoChart } from "@/components/ui";
+import { KpiCard, KpiGrid, SectionHeader } from "@/components/ui";
 
 export function ReportsContent({
   byClass,
   totalDowntime,
   overdueCount,
   recurring,
-  failureModePareto,
 }: {
   byClass: Record<string, { total: number; unavailable: number; limited: number }>;
   totalDowntime: number;
   overdueCount: number;
   recurring: [string, number][];
-  failureModePareto: { label: string; count: number }[];
 }) {
-  const paretoTotal = failureModePareto.reduce((s, d) => s + d.count, 0);
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -34,20 +31,6 @@ export function ReportsContent({
         <KpiCard label="Open issues overdue" value={overdueCount} icon={AlertTriangle} accent={overdueCount > 0 ? "text-red-600" : "text-emerald-600"} iconBg={overdueCount > 0 ? "bg-red-50" : "bg-emerald-50"} />
         <KpiCard label="Assets w/ recurring issues" value={recurring.length} icon={RefreshCcw} accent={recurring.length > 0 ? "text-amber-600" : "text-emerald-600"} iconBg={recurring.length > 0 ? "bg-amber-50" : "bg-emerald-50"} />
       </KpiGrid>
-
-      <div>
-        <SectionHeader title="Failure mode analysis" subtitle="Pareto — resolved issues by failure mode, ranked with cumulative %" />
-        {failureModePareto.length === 0 ? (
-          <p className="text-sm text-slate-500">No classified failure modes on record yet.</p>
-        ) : (
-          <div className="card p-4">
-            <ParetoChart data={failureModePareto} />
-            <p className="mt-2 text-center text-[11px] text-slate-400">
-              {failureModePareto.length} failure mode{failureModePareto.length !== 1 ? "s" : ""} across {paretoTotal} resolved issue{paretoTotal !== 1 ? "s" : ""}
-            </p>
-          </div>
-        )}
-      </div>
 
       <div>
         <SectionHeader title="Equipment class rollup" />

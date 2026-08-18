@@ -135,7 +135,7 @@ export function ParetoChart({ data }: { data: { label: string; count: number }[]
   const padBottom = 46;
   const chartH = height - padTop - padBottom;
   const barGap = 10;
-  const barW = Math.min(56, (width - padX * 2 - barGap * (data.length - 1)) / data.length);
+  const barW = Math.min(96, (width - padX * 2 - barGap * (data.length - 1)) / data.length);
   const total = data.reduce((s, d) => s + d.count, 0);
   const maxCount = Math.max(...data.map((d) => d.count));
 
@@ -167,8 +167,8 @@ export function ParetoChart({ data }: { data: { label: string; count: number }[]
           <text x={p.x} y={padTop + chartH + 14} fontSize="10" fill="#475569" textAnchor="middle">
             {p.count}
           </text>
-          <text x={p.x} y={padTop + chartH + 30} fontSize="9" fill="#64748b" textAnchor="middle">
-            {p.label.length > 12 ? p.label.slice(0, 11) + "…" : p.label}
+          <text x={p.x} y={padTop + chartH + 30} fontSize="9.5" fill="#64748b" textAnchor="middle">
+            {p.label.length > 18 ? p.label.slice(0, 17) + "…" : p.label}
           </text>
           <title>{`${p.label}: ${p.count} (${p.cumPct.toFixed(0)}% cumulative)`}</title>
         </g>

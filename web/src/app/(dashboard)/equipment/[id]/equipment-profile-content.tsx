@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronRight, User, ExternalLink, Clock, Box, Search, Pencil, Percent, Wrench } from "lucide-react";
+import { ChevronRight, User, ExternalLink, Clock, Box, Search, Pencil, Percent, Wrench, Plus, Upload } from "lucide-react";
 import { StatusBadge, KpiCard, KpiGrid, InfoCard, EmptyState } from "@/components/ui";
 import { EditEquipmentModal } from "@/components/edit-equipment-modal";
 import { EditIssueModal } from "@/components/edit-issue-modal";
 import { ResolveIssueModal } from "@/components/resolve-issue-modal";
+import { LogMaintenanceModal } from "@/components/log-maintenance-modal";
+import { UploadDocumentModal } from "@/components/upload-document-modal";
 import { criticalityTier } from "@/lib/theme";
 import { assetAvailabilityPct } from "@/lib/data/kpis";
 import type { getEquipmentById } from "@/lib/data/equipment";
@@ -24,7 +26,6 @@ type Doc = Awaited<ReturnType<typeof getDocumentsByAsset>>[number];
 const TABS = [
   { key: "overview", label: "Overview" },
   { key: "issues", label: "Issues" },
-  { key: "updates", label: "Updates" },
   { key: "maintenance", label: "Maintenance" },
   { key: "documents", label: "Documents" },
 ] as const;
@@ -60,8 +61,11 @@ export function EquipmentProfileContent({
   const [showEditEquipment, setShowEditEquipment] = useState(false);
   const [showEditIssue, setShowEditIssue] = useState(false);
   const [showResolve, setShowResolve] = useState(false);
+  const [showLogMaintenance, setShowLogMaintenance] = useState(false);
+  const [showUploadDocument, setShowUploadDocument] = useState(false);
 
   const canManage = role === "manager";
+  const canLogWork = role === "technician" || role === "manager";
   const tier = criticalityTier(asset.critScore);
   const nameplate = (asset.nameplate as Record<string, string>) ?? {};
   const availPct = assetAvailabilityPct(asset.downtimeDays90d);
@@ -81,6 +85,8 @@ export function EquipmentProfileContent({
       {showResolve && activeIssue && canManage && (
         <ResolveIssueModal issue={{ id: activeIssue.id, assetId: activeIssue.assetId, condition: activeIssue.condition, identifiedAt: activeIssue.identifiedAt }} onClose={() => setShowResolve(false)} />
       )}
+      {showLogMaintenance && canLogWork && <LogMaintenanceModal assetId={asset.id} onClose={() => setShowLogMaintenance(false)} />}
+      {showUploadDocument && canLogWork && <UploadDocumentModal assetId={asset.id} onClose={() => setShowUploadDocument(false)} />}
 
       <div onClick={() => router.push("/equipment")} className="mb-3 flex cursor-pointer items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700">
         <span>{asset.location.name}</span>
@@ -260,24 +266,16 @@ export function EquipmentProfileContent({
         </div>
       )}
 
-      {tab === "updates" && (
-        <div className="divide-y divide-slate-100">
-          {activeIssue && activeIssue.notes.length > 0 ? (
-            [...activeIssue.notes].reverse().map((n) => (
-              <div key={n.id} className="flex gap-2.5 py-2.5">
-                <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
-                <p className="text-sm text-slate-700">{n.body}</p>
-              </div>
-            ))
-          ) : (
-            <p className="py-2.5 text-sm text-slate-500">No recent updates — updates appear here as an active issue progresses.</p>
-          )}
-        </div>
-      )}
-
       {tab === "maintenance" && (
         <div>
-          <p className="mb-3.5 text-xs text-slate-500">Major maintenance events on this asset. Work order detail lives in AIM.</p>
+          <div className="mb-3.5 flex items-center justify-between gap-3">
+            <p className="text-xs text-slate-500">Major maintenance events on this asset. Work order detail lives in AIM.</p>
+            {canLogWork && (
+              <button type="button" onClick={() => setShowLogMaintenance(true)} className="btn-primary shrink-0 whitespace-nowrap px-2.5 py-1.5 text-xs">
+                <Plus className="h-3.5 w-3.5" /> Log entry
+              </button>
+            )}
+          </div>
           {maintenance.length === 0 ? (
             <EmptyState icon={Box} title="No major maintenance on record" detail="Overhauls, replacements, and tests will appear here." />
           ) : (
@@ -299,7 +297,14 @@ export function EquipmentProfileContent({
 
       {tab === "documents" && (
         <div>
-          <p className="mb-3.5 text-xs text-slate-500">Datasheets, manuals, certificates, and photos for this asset.</p>
+          <div className="mb-3.5 flex items-center justify-between gap-3">
+            <p className="text-xs text-slate-500">Datasheets, manuals, certificates, and photos for this asset.</p>
+            {canLogWork && (
+              <button type="button" onClick={() => setShowUploadDocument(true)} className="btn-primary shrink-0 whitespace-nowrap px-2.5 py-1.5 text-xs">
+                <Upload className="h-3.5 w-3.5" /> Upload
+              </button>
+            )}
+          </div>
           {documents.length === 0 ? (
             <EmptyState icon={Search} title="No documents uploaded yet" detail="Manuals, certificates, and photos for this asset will appear here." />
           ) : (
