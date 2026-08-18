@@ -1,30 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Search, LogOut, Gauge } from "lucide-react";
-import { LogIssueModal } from "./log-issue-modal";
 import { signOutAction } from "@/lib/actions/auth-signout";
 
-type PickerAsset = { id: string; assetNumber: string; manufacturer: string; model: string; locationId: string; critScore: number };
-
-export function Header({
-  canLogIssue,
-  equipmentList,
-  userName,
-}: {
-  canLogIssue: boolean;
-  equipmentList: PickerAsset[];
-  userName: string;
-}) {
+export function Header({ userName }: { userName: string }) {
   const router = useRouter();
-  const pathname = usePathname();
   const [query, setQuery] = useState("");
-  const [showLogModal, setShowLogModal] = useState(false);
   const [searchError, setSearchError] = useState(false);
-
-  const equipmentMatch = pathname.match(/^\/equipment\/([^/]+)/);
-  const currentAssetId = equipmentMatch ? decodeURIComponent(equipmentMatch[1]) : null;
 
   async function handleSearch(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key !== "Enter" || !query.trim()) return;
@@ -41,7 +25,7 @@ export function Header({
 
   return (
     <header className="sticky top-0 z-30 border-b border-maroon-800 bg-maroon-900 text-white shadow-md">
-      <div className="mx-auto flex max-w-[1600px] items-center justify-between gap-4 px-4 py-3 sm:px-6">
+      <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-4 px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/20">
             <Gauge className="h-6 w-6" />
@@ -67,12 +51,6 @@ export function Header({
             />
           </div>
 
-          {canLogIssue && (
-            <button type="button" onClick={() => setShowLogModal(true)} className="whitespace-nowrap rounded-lg bg-white px-3 py-2 text-sm font-semibold text-maroon-900 transition hover:bg-maroon-50">
-              + Log new issue
-            </button>
-          )}
-
           <span className="hidden text-sm text-maroon-100 md:inline">{userName}</span>
 
           <form action={signOutAction}>
@@ -83,8 +61,6 @@ export function Header({
           </form>
         </div>
       </div>
-
-      {showLogModal && <LogIssueModal onClose={() => setShowLogModal(false)} equipmentList={equipmentList} presetAssetId={currentAssetId} />}
     </header>
   );
 }

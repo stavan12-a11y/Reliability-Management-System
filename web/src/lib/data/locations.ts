@@ -7,3 +7,7 @@ export async function getLocations() {
 export async function getSystemsByLocation(locationId: string) {
   return prisma.system.findMany({ where: { locationId }, orderBy: { id: "asc" } });
 }
+
+export async function getAllSystems() {
+  return prisma.system.findMany({ orderBy: { id: "asc" } });
+}

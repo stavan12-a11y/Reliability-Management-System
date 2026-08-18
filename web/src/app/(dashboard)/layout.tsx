@@ -10,9 +10,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="min-h-screen">
-      <Header canLogIssue={canLogIssue} equipmentList={equipmentList} userName={user?.name ?? ""} />
-      <main className="mx-auto max-w-[1600px] px-4 py-6 sm:px-6">
-        <PageNav />
+      <Header userName={user?.name ?? ""} />
+      <main className="mx-auto max-w-[1280px] px-4 py-6 sm:px-6">
+        <PageNav canLogIssue={canLogIssue} equipmentList={equipmentList} />
         {children}
       </main>
     </div>

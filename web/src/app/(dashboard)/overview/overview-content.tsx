@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, CheckCircle2, Percent, ShieldAlert, Clock, AlertTriangle, Wrench, Package } from "lucide-react";
+import { Bell, CheckCircle2, Percent, ShieldAlert, Clock, AlertTriangle, Wrench } from "lucide-react";
 import { KpiCard, KpiGrid, SectionHeader, EmptyState, StatusBadge } from "@/components/ui";
 import type { getActiveIssues } from "@/lib/data/issues";
 
@@ -73,15 +73,6 @@ export function OverviewContent({
           iconBg={counts.limited > 0 ? "bg-amber-50" : "bg-emerald-50"}
           onClick={() => router.push("/issues?tab=limited")}
         />
-        <KpiCard
-          label="Overdue next steps"
-          value={counts.overdue}
-          icon={Clock}
-          accent={counts.overdue > 0 ? "text-red-600" : "text-emerald-600"}
-          iconBg={counts.overdue > 0 ? "bg-red-50" : "bg-emerald-50"}
-          onClick={() => router.push("/issues?tab=overdue")}
-        />
-        <KpiCard label="Awaiting parts" value={counts.awaitingParts} icon={Package} accent="text-slate-600" iconBg="bg-slate-100" onClick={() => router.push("/issues?tab=all")} />
       </KpiGrid>
 
       <div>
