@@ -1,0 +1,246 @@
+// UES Reliability Dashboard — Prisma schema
+// See BUILD_SPEC.md section 1 for the data model this implements.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  viewer
+  technician
+  manager
+}
+
+enum EquipmentStatus {
+  available
+  limited
+  unavailable
+}
+
+enum IssueCondition {
+  unavailable
+  limited
+}
+
+// Controlled vocabulary for Phase 2 (AI history lookup). Columns exist now so
+// resolutions captured today don't need a later backfill — see BUILD_SPEC.md.
+enum FailureMode {
+  bearing_failure
+  seal_gasket_leak
+  electrical_fault
+  control_instrumentation_fault
+  corrosion
+  fouling
+  overload
+  human_error
+  other
+}
+
+enum Component {
+  compressor
+  condenser
+  evaporator
+  control_panel
+  motor
+  bearing
+  seal
+  impeller
+  burner
+  refractory
+  tube_bundle
+  valve
+  sensor
+  other
+}
+
+enum MaintenanceType {
+  overhaul
+  component_replacement
+  test
+  inspection
+  other
+}
+
+enum DocumentType {
+  manual
+  certificate
+  report
+  photo
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(viewer)
+  createdAt    DateTime @default(now())
+
+  createdIssues      Issue[]           @relation("IssueCreatedBy")
+  updatedIssues      Issue[]           @relation("IssueUpdatedBy")
+  issueNotes         IssueNote[]
+  resolvedHistory    IssueHistory[]    @relation("HistoryResolvedBy")
+  maintenanceEntries MaintenanceLog[]
+  documents          Document[]
+  digestSubscription DigestSubscriber?
+}
+
+model Location {
+  id   String @id
+  name String
+
+  systems           System[]
+  equipment         Equipment[]
+  digestSubscribers DigestSubscriber[]
+}
+
+model System {
+  id         String @id
+  locationId String
+  name       String
+  icon       String
+
+  location  Location    @relation(fields: [locationId], references: [id])
+  equipment Equipment[]
+
+  @@index([locationId])
+}
+
+model Equipment {
+  id              String          @id
+  assetNumber     String
+  systemId        String
+  locationId      String
+  class           String
+  manufacturer    String
+  model           String
+  serial          String
+  status          EquipmentStatus @default(available)
+  critLikelihood  Int
+  critConsequence Int
+  critScore       Int
+  nameplate       Json
+  downtimeDays90d Decimal         @default(0) @db.Decimal(6, 1)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
+
+  system   System   @relation(fields: [systemId], references: [id])
+  location Location @relation(fields: [locationId], references: [id])
+
+  issues         Issue[]
+  history        IssueHistory[]
+  maintenanceLog MaintenanceLog[]
+  documents      Document[]
+
+  @@index([systemId])
+  @@index([locationId])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+model Issue {
+  id           String         @id @default(uuid())
+  assetId      String
+  condition    IssueCondition
+  description  String
+  identifiedAt DateTime       @db.Date
+  nextStep     String
+  responsible  String
+  partsEta     DateTime?      @db.Date
+  returnEta    DateTime?      @db.Date
+  woNumber     String?
+  createdById  String?
+  updatedById  String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  asset     Equipment   @relation(fields: [assetId], references: [id])
+  createdBy User?       @relation("IssueCreatedBy", fields: [createdById], references: [id])
+  updatedBy User?       @relation("IssueUpdatedBy", fields: [updatedById], references: [id])
+  notes     IssueNote[]
+
+  @@index([assetId])
+  @@index([returnEta])
+}
+
+model IssueNote {
+  id          String   @id @default(uuid())
+  issueId     String
+  body        String
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  issue     Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  createdBy User? @relation(fields: [createdById], references: [id])
+
+  @@index([issueId])
+}
+
+model IssueHistory {
+  id           String       @id @default(uuid())
+  assetId      String
+  description  String
+  rootCause    String
+  failureMode  FailureMode?
+  component    Component?
+  resolvedAt   DateTime     @db.Date
+  identifiedAt DateTime     @db.Date
+  downtimeDays Int
+  woNumber     String?
+  resolvedById String?
+  createdAt    DateTime     @default(now())
+
+  asset      Equipment @relation(fields: [assetId], references: [id])
+  resolvedBy User?     @relation("HistoryResolvedBy", fields: [resolvedById], references: [id])
+
+  @@index([assetId])
+  @@index([resolvedAt])
+}
+
+model MaintenanceLog {
+  id          String          @id @default(uuid())
+  assetId     String
+  date        DateTime        @db.Date
+  type        MaintenanceType
+  description String
+  woNumber    String?
+  createdById String?
+  createdAt   DateTime        @default(now())
+
+  asset     Equipment @relation(fields: [assetId], references: [id])
+  createdBy User?     @relation(fields: [createdById], references: [id])
+
+  @@index([assetId])
+}
+
+model Document {
+  id           String       @id @default(uuid())
+  assetId      String
+  name         String
+  type         DocumentType
+  fileUrl      String
+  uploadedById String?
+  uploadedAt   DateTime     @default(now())
+
+  asset      Equipment @relation(fields: [assetId], references: [id])
+  uploadedBy User?     @relation(fields: [uploadedById], references: [id])
+
+  @@index([assetId])
+}
+
+// Weekly digest recipient list — see BUILD_SPEC.md section 5.
+model DigestSubscriber {
+  id         String  @id @default(uuid())
+  userId     String  @unique
+  frequency  String  @default("weekly")
+  locationId String?
+
+  user     User      @relation(fields: [userId], references: [id])
+  location Location? @relation(fields: [locationId], references: [id])
+}
