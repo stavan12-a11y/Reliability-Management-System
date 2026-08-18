@@ -1,0 +1,2 @@
+location_name,system_name,system_icon,asset_id,asset_number,class,manufacturer,model,serial,crit_likelihood,crit_consequence,status,downtime_days_90d,nameplate:Tonnage,nameplate:Refrigerant,nameplate:Compressor type,nameplate:Install year
+Central Utility Plant,Chilled Water System,snowflake,CHLR004,AST-10099,Chiller,Trane,CVHF450,TR-2022-1001,4,5,available,0,450,R-134a,Centrifugal,2022
