@@ -28,8 +28,6 @@ export function EquipmentContent({ equipment }: { equipment: Equipment[] }) {
   });
 
   const accessor = (row: Equipment, key: string) => {
-    if (key === "id") return row.id;
-    if (key === "class") return row.class;
     if (key === "criticality") return row.critScore;
     if (key === "status") return row.status;
     return null;
@@ -93,8 +91,8 @@ export function EquipmentContent({ equipment }: { equipment: Equipment[] }) {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "90px 90px 1fr 90px 90px 15px", gap: 12, padding: "0 14px", marginBottom: 6 }}>
-        <SortableHeader label="Asset" sortKey="id" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
-        <SortableHeader label="Class" sortKey="class" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
+        <span style={{ fontSize: 12.5, color: colors.textGhost }}>Asset</span>
+        <span style={{ fontSize: 12.5, color: colors.textGhost }}>Class</span>
         <span></span>
         <SortableHeader label="Criticality" sortKey="criticality" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
         <SortableHeader label="Status" sortKey="status" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
