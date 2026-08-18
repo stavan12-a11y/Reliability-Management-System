@@ -6,12 +6,7 @@ import { statusMeta, type StatusKey } from "@/lib/theme";
 
 export function StatusBadge({ status }: { status: StatusKey }) {
   const m = statusMeta[status];
-  return (
-    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md border px-2 py-1 text-xs font-semibold ${m.bg} ${m.border} ${m.text}`}>
-      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${m.dot}`} />
-      {m.label}
-    </span>
-  );
+  return <span className={`inline-flex items-center justify-center whitespace-nowrap rounded-md border px-2 py-1 text-xs font-semibold ${m.bg} ${m.border} ${m.text}`}>{m.label}</span>;
 }
 
 export function CriticalityBadge({ tier }: { tier: { label: string; text: string; bg: string; border: string; dot: string } }) {
