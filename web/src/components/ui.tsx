@@ -137,13 +137,20 @@ export function ParetoChart({ data }: { data: { label: string; count: number }[]
   const barGap = 10;
   const barW = Math.min(96, (width - padX * 2 - barGap * (data.length - 1)) / data.length);
   const total = data.reduce((s, d) => s + d.count, 0);
-  const maxCount = Math.max(...data.map((d) => d.count));
 
+  // Bars and the cumulative line must share the same 0–100% scale (both
+  // fractions of `total`), not the bar scaled to the single largest
+  // category — otherwise the first bar (always the biggest, since data is
+  // sorted descending) renders at exactly 100% height every time, which
+  // looks like it's claiming 100% of all issues instead of just being the
+  // single largest bar. With both on the `total` scale, the top of each
+  // bar and the cumulative line agree at that bar's position, as a Pareto
+  // chart is supposed to.
   const points = data.map((d, i) => {
     const cumCount = data.slice(0, i + 1).reduce((s, e) => s + e.count, 0);
     const cumPct = (cumCount / total) * 100;
     const x = padX + i * (barW + barGap) + barW / 2;
-    const barH = (d.count / maxCount) * chartH;
+    const barH = (d.count / total) * chartH;
     return { ...d, x, barH, barY: padTop + (chartH - barH), lineY: padTop + (1 - cumPct / 100) * chartH, cumPct };
   });
   const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.lineY.toFixed(1)}`).join(" ");

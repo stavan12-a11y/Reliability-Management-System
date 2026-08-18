@@ -188,6 +188,229 @@ async function main() {
     });
   }
 
+  console.log("Seeding expanded fleet (generated)...");
+  // Deterministic PRNG (mulberry32) — a fixed seed means re-running
+  // `prisma db seed` regenerates the exact same expanded fleet every time
+  // instead of growing/reshuffling it on each run. Equipment/history/
+  // maintenance IDs below are all sequential, not random, for the same
+  // reason: upsert-by-id has to hit the same rows again, not pile up new
+  // ones.
+  function mulberry32(a: number) {
+    return function () {
+      a |= 0;
+      a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const rand = mulberry32(20260818);
+  function pick<T>(arr: readonly T[]): T {
+    return arr[Math.floor(rand() * arr.length)];
+  }
+  function randInt(min: number, max: number) {
+    return Math.floor(rand() * (max - min + 1)) + min;
+  }
+  function addDays(iso: string, days: number) {
+    const d = new Date(iso);
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
+  }
+
+  const CHILLER_MODELS = [
+    { mfr: "Trane", model: "CVHF450", Tonnage: "450", Refrigerant: "R-134a", "Compressor type": "Centrifugal" },
+    { mfr: "Trane", model: "CVHF600", Tonnage: "600", Refrigerant: "R-134a", "Compressor type": "Centrifugal" },
+    { mfr: "York", model: "YK-EP", Tonnage: "400", Refrigerant: "R-134a", "Compressor type": "Centrifugal" },
+    { mfr: "York", model: "YVAA", Tonnage: "350", Refrigerant: "R-134a", "Compressor type": "Screw" },
+    { mfr: "Carrier", model: "19XR", Tonnage: "500", Refrigerant: "R-134a", "Compressor type": "Centrifugal" },
+    { mfr: "Carrier", model: "23XRV", Tonnage: "550", Refrigerant: "R-134a", "Compressor type": "Centrifugal" },
+  ] as const;
+  const CHILLER_FAILURES = [
+    { mode: "bearing_failure", component: "compressor", desc: "Compressor bearing failure, excessive vibration on startup", rootCause: "Bearing wear traced to an extended lubrication interval." },
+    { mode: "refrigerant_leak", component: "refrigerant_circuit", desc: "Refrigerant leak, low charge", rootCause: "Seal wear at the compressor shaft seal allowed a slow refrigerant leak." },
+    { mode: "fouling", component: "condenser", desc: "Condenser tube fouling reducing heat transfer efficiency", rootCause: "Mineral scale buildup from cooling tower water chemistry drift." },
+    { mode: "electrical_fault", component: "control_panel", desc: "Control panel lockout, no display on HMI", rootCause: "Control panel power supply board failed." },
+    { mode: "control_instrumentation_fault", component: "evaporator", desc: "Evaporator freeze-up, low refrigerant flow", rootCause: "Thermal expansion valve stuck partially closed, starving evaporator flow." },
+    { mode: "corrosion", component: "condenser", desc: "Condenser tube corrosion found during inspection", rootCause: "Pitting corrosion from inconsistent water treatment chemistry." },
+  ] as const;
+
+  const BOILER_MODELS = [
+    { mfr: "Cleaver-Brooks", model: "CB-700", Capacity: "700 HP", Fuel: "Natural gas", MAWP: "150 psi" },
+    { mfr: "Cleaver-Brooks", model: "CB-500", Capacity: "500 HP", Fuel: "Natural gas", MAWP: "125 psi" },
+    { mfr: "Fulton", model: "FB-D-600", Capacity: "600 HP", Fuel: "Natural gas", MAWP: "150 psi" },
+    { mfr: "Johnston", model: "100-W", Capacity: "800 HP", Fuel: "Natural gas", MAWP: "150 psi" },
+  ] as const;
+  const BOILER_FAILURES = [
+    { mode: "electrical_fault", component: "burner", desc: "Ignition transformer failure", rootCause: "Ignition transformer winding shorted internally, no external cause found." },
+    { mode: "electrical_fault", component: "burner", desc: "Fuel valve actuator failure", rootCause: "Actuator reached end-of-life; motor windings had degraded from age." },
+    { mode: "sensor_failure", component: "control_panel", desc: "Low water cutoff failure", rootCause: "Sensor fouling from scale buildup caused a false low-water trip." },
+    { mode: "corrosion", component: "tube_bundle", desc: "Tube corrosion found during internal inspection", rootCause: "Localized pitting corrosion from inconsistent feedwater treatment chemistry." },
+    { mode: "control_instrumentation_fault", component: "safety_valve", desc: "Safety valve failed to reseat properly during annual test", rootCause: "Valve seat had minor scoring from age; reseated after lapping." },
+  ] as const;
+
+  const PUMP_MODELS = [
+    { mfr: "Bell & Gossett", model: "e-1510", Flow: "1000 gpm", Head: "80 ft", "Oil type": "ISO 32" },
+    { mfr: "Goulds", model: "3196", Flow: "350 gpm", Head: "400 ft", "Oil type": "ISO 68" },
+    { mfr: "Grundfos", model: "TP", Flow: "600 gpm", Head: "60 ft", "Oil type": "ISO 32" },
+    { mfr: "Armstrong", model: "4300", Flow: "800 gpm", Head: "75 ft", "Oil type": "ISO 32" },
+  ] as const;
+  const PUMP_FAILURES = [
+    { mode: "bearing_failure", component: "motor", desc: "Motor bearing failure, motor replaced", rootCause: "Motor bearing seized from lubrication breakdown." },
+    { mode: "seal_gasket_leak", component: "seal", desc: "Mechanical seal leak at pump", rootCause: "Mechanical seal faces wore out from years of service." },
+    { mode: "bearing_failure", component: "bearing", desc: "Pump bearing failure, excessive noise", rootCause: "Bearing wear accelerated by high-temperature service; standard grade was undersized." },
+    { mode: "overload", component: "impeller", desc: "Motor trip on overload", rootCause: "Impeller partially clogged with debris, increasing load on the motor." },
+  ] as const;
+
+  const HTC_MODELS = [
+    { mfr: "Patterson-Kelley", model: "MPS-15", Duty: "15 MMBtu/hr", "Surface area": "600 ft²", "Design pressure": "150 psi" },
+    { mfr: "Aerco", model: "InnovationHX", Duty: "12 MMBtu/hr", "Surface area": "520 ft²", "Design pressure": "150 psi" },
+  ] as const;
+  const HTC_FAILURES = [
+    { mode: "corrosion", component: "tube_bundle", desc: "Tube bundle leak found during inspection", rootCause: "Pinhole corrosion from years of dissolved-oxygen exposure in the loop." },
+    { mode: "sensor_failure", component: "sensor", desc: "Outlet temperature sensor drift", rootCause: "Sensor calibration drifted out of tolerance with age." },
+  ] as const;
+
+  type ClassGroup = { prefix: string; cls: string; models: readonly { mfr: string; model: string }[]; failures: readonly { mode: string; component: string; desc: string; rootCause: string }[] };
+  const GROUPS: Record<string, ClassGroup> = {
+    chiller: { prefix: "CHLR", cls: "Chiller", models: CHILLER_MODELS, failures: CHILLER_FAILURES },
+    boiler: { prefix: "BLR", cls: "Boiler", models: BOILER_MODELS, failures: BOILER_FAILURES },
+    pump: { prefix: "PMP", cls: "Pump", models: PUMP_MODELS, failures: PUMP_FAILURES },
+    htc: { prefix: "HTC", cls: "Heat converter", models: HTC_MODELS, failures: HTC_FAILURES },
+  };
+
+  // Which plant gets how many of each class — Central is the flagship
+  // "full" plant, West and South are smaller satellite plants.
+  const FLEET_PLAN: { group: keyof typeof GROUPS; count: number; systemId: string; locationId: string; startIndex: number }[] = [
+    { group: "chiller", count: 9, systemId: "chw", locationId: "central", startIndex: 100 },
+    { group: "pump", count: 9, systemId: "chw", locationId: "central", startIndex: 100 },
+    { group: "boiler", count: 7, systemId: "steam", locationId: "central", startIndex: 100 },
+    { group: "pump", count: 7, systemId: "steam", locationId: "central", startIndex: 200 },
+    { group: "chiller", count: 4, systemId: "chw-w", locationId: "west", startIndex: 200 },
+    { group: "pump", count: 4, systemId: "hw", locationId: "west", startIndex: 300 },
+    { group: "htc", count: 2, systemId: "hw", locationId: "west", startIndex: 100 },
+    { group: "boiler", count: 3, systemId: "steam-s", locationId: "south", startIndex: 200 },
+    { group: "pump", count: 3, systemId: "steam-s", locationId: "south", startIndex: 400 },
+  ];
+
+  let assetNumberSeq = 20100;
+  function nextAssetNumber() {
+    assetNumberSeq++;
+    return `AST-${assetNumberSeq}`;
+  }
+  function genStatus(): "available" | "limited" | "unavailable" {
+    const r = rand();
+    if (r < 0.72) return "available";
+    if (r < 0.9) return "limited";
+    return "unavailable";
+  }
+  function genCriticality() {
+    const r = rand();
+    if (r < 0.2) return { likelihood: 4, consequence: 5, score: 20 };
+    if (r < 0.5) return { likelihood: 3, consequence: 4, score: 12 };
+    if (r < 0.8) return { likelihood: 2, consequence: 3, score: 6 };
+    return { likelihood: 1, consequence: 3, score: 3 };
+  }
+
+  type GenAsset = { id: string; installYear: number; group: keyof typeof GROUPS };
+  const genAssets: GenAsset[] = [];
+
+  for (const plan of FLEET_PLAN) {
+    const g = GROUPS[plan.group];
+    for (let i = 0; i < plan.count; i++) {
+      const idx = plan.startIndex + i;
+      const id = `${g.prefix}${idx}`;
+      const m = pick(g.models);
+      const installYear = randInt(2012, 2023);
+      const crit = genCriticality();
+      const status = genStatus();
+      const { mfr, model, ...nameplateExtra } = m as { mfr: string; model: string; [k: string]: string };
+      genAssets.push({ id, installYear, group: plan.group });
+      await prisma.equipment.upsert({
+        where: { id },
+        update: {},
+        create: {
+          id,
+          assetNumber: nextAssetNumber(),
+          systemId: plan.systemId,
+          locationId: plan.locationId,
+          class: g.cls,
+          manufacturer: mfr,
+          model,
+          serial: `${mfr.slice(0, 2).toUpperCase()}-${installYear}-${randInt(100, 999)}`,
+          status,
+          critScore: crit.score,
+          critLikelihood: crit.likelihood,
+          critConsequence: crit.consequence,
+          nameplate: { ...nameplateExtra, "Install year": String(installYear) },
+          downtimeDays90d: status === "unavailable" ? randInt(2, 5) : status === "limited" ? randInt(1, 3) : 0,
+        },
+      });
+    }
+  }
+
+  console.log(`Seeding ${genAssets.length} generated assets' history...`);
+  let woSeq = 130000;
+  let histSeq = 0;
+  let maintSeq = 0;
+  for (const asset of genAssets) {
+    const g = GROUPS[asset.group];
+    // Older equipment has accumulated more history — 1 incident roughly
+    // every 2-3 years of service, capped so this stays plausible.
+    const yearsInService = 2026 - asset.installYear;
+    const incidentCount = Math.min(6, Math.max(1, Math.round(yearsInService / randInt(2, 3))));
+
+    for (let n = 0; n < incidentCount; n++) {
+      const f = pick(g.failures);
+      const year = randInt(asset.installYear + 1, 2026);
+      const month = randInt(1, year === 2026 ? 7 : 12);
+      const day = randInt(1, 27);
+      const identified = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      const downtimeDays = randInt(1, 5);
+      const resolved = addDays(identified, downtimeDays);
+      histSeq++;
+      woSeq += 10;
+      await prisma.issueHistory.upsert({
+        where: { id: `HG-${asset.id}-${n}` },
+        update: {},
+        create: {
+          id: `HG-${asset.id}-${n}`,
+          assetId: asset.id,
+          description: f.desc,
+          rootCause: f.rootCause,
+          resolvedAt: new Date(resolved),
+          identifiedAt: new Date(identified),
+          downtimeDays,
+          woNumber: `WO-${woSeq}`,
+          failureMode: f.mode as never,
+          component: f.component as never,
+          resolvedById: manager.id,
+        },
+      });
+    }
+
+    // Roughly one overhaul/inspection record per asset, not tied to a
+    // failure — routine maintenance rather than a breakdown.
+    if (rand() < 0.6) {
+      maintSeq++;
+      const year = randInt(asset.installYear + 1, 2026);
+      const date = `${year}-${String(randInt(1, 12)).padStart(2, "0")}-${String(randInt(1, 27)).padStart(2, "0")}`;
+      await prisma.maintenanceLog.upsert({
+        where: { id: `MG-${asset.id}` },
+        update: {},
+        create: {
+          id: `MG-${asset.id}`,
+          assetId: asset.id,
+          date: new Date(date),
+          type: "inspection",
+          description: "Annual inspection and preventive maintenance, no deficiencies found",
+          woNumber: `WO-${140000 + maintSeq * 10}`,
+          createdById: tech.id,
+        },
+      });
+    }
+  }
+  console.log(`Generated ${histSeq} issue-history records and ${maintSeq} maintenance records.`);
+
   console.log("Seeding digest subscribers...");
   await prisma.digestSubscriber.upsert({
     where: { userId: manager.id },
