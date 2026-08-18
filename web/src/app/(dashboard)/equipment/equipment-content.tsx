@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, ChevronRight, Plus, Box, Percent, Clock, AlertTriangle } from "lucide-react";
-import { EmptyState, ExportButton, StatusBadge, CriticalityBadge, KpiCard, KpiGrid, downloadCsv } from "@/components/ui";
+import { EmptyState, ExportButton, StatusBadge, KpiCard, KpiGrid, downloadCsv } from "@/components/ui";
 import { AddEquipmentModal } from "@/components/add-equipment-modal";
 import { criticalityTier } from "@/lib/theme";
 import type { getEquipmentList } from "@/lib/data/equipment";
@@ -16,7 +16,7 @@ type HistoryRow = Awaited<ReturnType<typeof getIssueHistory>>[number];
 type Location = { id: string; name: string };
 type System = { id: string; locationId: string; name: string };
 
-const ROW_COLS = "grid-cols-[100px_130px_1fr_110px_120px_18px]";
+const ROW_COLS = "grid-cols-[100px_130px_1fr_120px_18px]";
 
 function availabilityAccent(pct: number) {
   if (pct >= 97) return { accent: "text-emerald-600", iconBg: "bg-emerald-50" };
@@ -158,7 +158,6 @@ export function EquipmentContent({
             <span>Asset</span>
             <span>Location</span>
             <span></span>
-            <span>Criticality</span>
             <span>Status</span>
             <span></span>
           </div>
@@ -170,7 +169,6 @@ export function EquipmentContent({
                 <span className="truncate text-xs text-slate-400">
                   {e.manufacturer} {e.model}
                 </span>
-                <CriticalityBadge tier={criticalityTier(e.critScore)} />
                 <StatusBadge status={e.status} />
                 <ChevronRight className="h-4 w-4 text-slate-300" />
               </div>

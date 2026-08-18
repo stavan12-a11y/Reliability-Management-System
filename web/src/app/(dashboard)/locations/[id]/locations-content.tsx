@@ -2,8 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { ArrowLeft, MapPin, Percent, ShieldAlert, Clock, ChevronRight, CheckCircle2 } from "lucide-react";
-import { KpiCard, KpiGrid, SectionHeader, StatusBadge, CriticalityBadge, EmptyState } from "@/components/ui";
-import { criticalityTier } from "@/lib/theme";
+import { KpiCard, KpiGrid, SectionHeader, StatusBadge, EmptyState } from "@/components/ui";
 import { systemIcon } from "@/lib/system-icons";
 import type { getLocations, getSystemsByLocation } from "@/lib/data/locations";
 import type { getEquipmentByLocation } from "@/lib/data/equipment";
@@ -92,14 +91,13 @@ export function LocationsContent({
                       <div
                         key={e.id}
                         onClick={() => router.push(`/equipment/${e.id}`)}
-                        className="grid cursor-pointer grid-cols-[100px_100px_1fr_90px_110px_18px] items-center gap-2.5 px-3.5 py-2.5 hover:bg-slate-50"
+                        className="grid cursor-pointer grid-cols-[100px_100px_1fr_110px_18px] items-center gap-2.5 px-3.5 py-2.5 hover:bg-slate-50"
                       >
                         <span className="font-mono text-sm font-semibold text-slate-900">{e.id}</span>
                         <span className="truncate text-xs text-slate-500">{e.assetNumber}</span>
                         <span className="truncate text-xs text-slate-400">
                           {e.manufacturer} {e.model}
                         </span>
-                        <CriticalityBadge tier={criticalityTier(e.critScore)} />
                         <StatusBadge status={e.status} />
                         <ChevronRight className="h-4 w-4 text-slate-300" />
                       </div>
