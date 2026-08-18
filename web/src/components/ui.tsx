@@ -44,8 +44,12 @@ export function KpiCard({ label, value, icon: Icon, accent, iconBg, hint, onClic
   );
 }
 
+// Fluid auto-fit grid instead of fixed breakpoint columns: each row fills
+// evenly with however many cards actually fit, so a row of 6 doesn't leave
+// a lone orphan card wrapped onto its own line the way a fixed 5-col grid
+// would.
 export function KpiGrid({ children }: { children: ReactNode }) {
-  return <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">{children}</div>;
+  return <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3">{children}</div>;
 }
 
 export function SectionHeader({ title, subtitle, right }: { title: string; subtitle?: string; right?: ReactNode }) {
