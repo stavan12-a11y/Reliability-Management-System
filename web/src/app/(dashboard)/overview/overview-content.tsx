@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, CheckCircle2, Percent, ShieldAlert, Clock, AlertTriangle, Wrench } from "lucide-react";
+import { Bell, CheckCircle2, Percent, ShieldAlert, Clock, AlertTriangle, Wrench, MapPin, ChevronRight } from "lucide-react";
 import { KpiCard, KpiGrid, SectionHeader, EmptyState, StatusBadge } from "@/components/ui";
 import type { getActiveIssues } from "@/lib/data/issues";
+import type { getLocationSummaries } from "@/lib/data/locations";
 
 type Issue = Awaited<ReturnType<typeof getActiveIssues>>[number];
+type LocationSummary = Awaited<ReturnType<typeof getLocationSummaries>>[number];
 
 function availabilityAccent(pct: number) {
   if (pct >= 97) return { accent: "text-emerald-600", iconBg: "bg-emerald-50" };
@@ -14,16 +16,24 @@ function availabilityAccent(pct: number) {
   return { accent: "text-red-600", iconBg: "bg-red-50" };
 }
 
+function availabilityTextColor(pct: number) {
+  if (pct >= 97) return "text-emerald-600";
+  if (pct >= 90) return "text-amber-600";
+  return "text-red-600";
+}
+
 export function OverviewContent({
   counts,
   fleetStats,
   issues,
   newSinceYesterday,
+  locations,
 }: {
   counts: { unavailable: number; limited: number; overdue: number; awaitingParts: number };
   fleetStats: { availabilityPct: number; criticalAvailabilityPct: number; mttrDays: number | null };
   issues: Issue[];
   newSinceYesterday: number;
+  locations: LocationSummary[];
 }) {
   const router = useRouter();
   const [showDigest, setShowDigest] = useState(false);
@@ -75,29 +85,67 @@ export function OverviewContent({
         />
       </KpiGrid>
 
-      <div>
-        <SectionHeader title="Active issues" subtitle="Sorted by urgency and criticality" />
-        {issues.length === 0 ? (
-          <EmptyState icon={CheckCircle2} title="All equipment available" detail="No active issues across UES right now." />
-        ) : (
-          <div className="card divide-y divide-slate-100">
-            {issues.map((issue) => (
-              <div key={issue.id} onClick={() => router.push(`/equipment/${issue.assetId}`)} className="flex cursor-pointer items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50">
-                <div className="min-w-0 flex-1">
-                  <div className="mb-0.5 flex items-center gap-2">
-                    <span className="font-mono text-sm font-semibold text-slate-900">{issue.assetId}</span>
-                    <span className="text-xs text-slate-500">
-                      {issue.asset.location.name} · {issue.asset.system.name}
-                    </span>
-                    {issue.overdue && <span className="text-[10px] font-bold tracking-wide text-red-600">OVERDUE</span>}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
+        <div>
+          <SectionHeader title="Locations" subtitle="Click a plant to see its equipment and KPIs" />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {locations.map((loc) => (
+              <button
+                key={loc.id}
+                type="button"
+                onClick={() => router.push(`/locations/${loc.id}`)}
+                className="card flex flex-col gap-3 p-4 text-left transition-all hover:shadow-card-hover"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-maroon-50">
+                      <MapPin className="h-4 w-4 text-maroon-700" />
+                    </div>
+                    <p className="text-sm font-bold text-slate-900">{loc.name}</p>
                   </div>
-                  <p className="truncate text-sm text-slate-600">{issue.description}</p>
+                  <ChevronRight className="h-4 w-4 text-slate-300" />
                 </div>
-                <StatusBadge status={issue.condition === "unavailable" ? "unavailable" : "limited"} />
-              </div>
+                <div className="flex items-center justify-between">
+                  <span className={`text-xl font-bold ${availabilityTextColor(loc.availabilityPct)}`}>{loc.availabilityPct}%</span>
+                  <span className="text-xs text-slate-400">
+                    {loc.total} asset{loc.total !== 1 ? "s" : ""}
+                  </span>
+                </div>
+                <div className="flex gap-3 text-xs text-slate-500">
+                  <span>
+                    <span className="font-semibold text-emerald-600">{loc.available}</span> available
+                  </span>
+                  <span>
+                    <span className="font-semibold text-amber-600">{loc.limited}</span> limited
+                  </span>
+                  <span>
+                    <span className="font-semibold text-red-600">{loc.unavailable}</span> unavailable
+                  </span>
+                </div>
+              </button>
             ))}
           </div>
-        )}
+        </div>
+
+        <aside className="lg:sticky lg:top-20 lg:self-start">
+          <SectionHeader title="Active issues" subtitle="By urgency" />
+          {issues.length === 0 ? (
+            <EmptyState icon={CheckCircle2} title="All equipment available" detail="No active issues right now." />
+          ) : (
+            <div className="card max-h-[600px] divide-y divide-slate-100 overflow-y-auto">
+              {issues.map((issue) => (
+                <div key={issue.id} onClick={() => router.push(`/equipment/${issue.assetId}`)} className="cursor-pointer px-3.5 py-3 hover:bg-slate-50">
+                  <div className="mb-0.5 flex items-center justify-between gap-2">
+                    <span className="font-mono text-sm font-semibold text-slate-900">{issue.assetId}</span>
+                    <StatusBadge status={issue.condition === "unavailable" ? "unavailable" : "limited"} />
+                  </div>
+                  {issue.overdue && <span className="mb-0.5 inline-block text-[10px] font-bold tracking-wide text-red-600">OVERDUE</span>}
+                  <p className="truncate text-xs text-slate-500">{issue.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </aside>
       </div>
     </div>
   );

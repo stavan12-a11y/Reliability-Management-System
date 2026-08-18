@@ -1,11 +1,17 @@
 import { getEquipmentList } from "@/lib/data/equipment";
 import { getActiveIssues } from "@/lib/data/issues";
 import { getIssueHistory } from "@/lib/data/history";
+import { getLocationSummaries } from "@/lib/data/locations";
 import { fleetKpis } from "@/lib/data/kpis";
 import { OverviewContent } from "./overview-content";
 
 export default async function OverviewPage() {
-  const [equipment, issues, history] = await Promise.all([getEquipmentList(), getActiveIssues(), getIssueHistory()]);
+  const [equipment, issues, history, locationSummaries] = await Promise.all([
+    getEquipmentList(),
+    getActiveIssues(),
+    getIssueHistory(),
+    getLocationSummaries(),
+  ]);
 
   const counts = {
     unavailable: equipment.filter((e) => e.status === "unavailable").length,
@@ -26,5 +32,5 @@ export default async function OverviewPage() {
     return (critScoreByAsset.get(b.assetId) || 0) - (critScoreByAsset.get(a.assetId) || 0);
   });
 
-  return <OverviewContent counts={counts} fleetStats={fleetStats} issues={sortedIssues} newSinceYesterday={newSinceYesterday} />;
+  return <OverviewContent counts={counts} fleetStats={fleetStats} issues={sortedIssues} newSinceYesterday={newSinceYesterday} locations={locationSummaries} />;
 }

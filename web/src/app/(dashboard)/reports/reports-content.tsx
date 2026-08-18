@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, AlertTriangle, RefreshCcw } from "lucide-react";
+import { Clock, AlertTriangle, RefreshCcw, FileSpreadsheet } from "lucide-react";
 import { KpiCard, KpiGrid, SectionHeader } from "@/components/ui";
 
 export function ReportsContent({
@@ -16,6 +16,16 @@ export function ReportsContent({
 }) {
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900">Reports</h2>
+          <p className="text-sm text-slate-500">Fleet performance and recurring-issue rollups.</p>
+        </div>
+        <a href="/api/reports/equipment-excel" className="btn-primary whitespace-nowrap">
+          <FileSpreadsheet className="h-4 w-4" /> Download Excel Report
+        </a>
+      </div>
+
       <KpiGrid>
         <KpiCard label="Total recorded downtime" value={`${totalDowntime}d`} icon={Clock} accent="text-slate-700" iconBg="bg-slate-100" />
         <KpiCard label="Open issues overdue" value={overdueCount} icon={AlertTriangle} accent={overdueCount > 0 ? "text-red-600" : "text-emerald-600"} iconBg={overdueCount > 0 ? "bg-red-50" : "bg-emerald-50"} />

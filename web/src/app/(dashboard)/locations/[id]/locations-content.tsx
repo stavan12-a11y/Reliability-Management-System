@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { MapPin, Percent, ShieldAlert, Clock } from "lucide-react";
+import { ArrowLeft, MapPin, Percent, ShieldAlert, Clock } from "lucide-react";
 import { KpiCard, KpiGrid, SectionHeader, StatusBadge } from "@/components/ui";
 import { systemIcon } from "@/lib/system-icons";
 import type { getLocations, getSystemsByLocation } from "@/lib/data/locations";
@@ -48,12 +48,16 @@ export function LocationsContent({
 
   return (
     <div className="space-y-6">
+      <button type="button" onClick={() => router.push("/overview")} className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700">
+        <ArrowLeft className="h-3 w-3" /> Back to Overview
+      </button>
+
       <div className="flex flex-wrap items-center gap-1.5">
         {locations.map((l) => (
           <button
             key={l.id}
             type="button"
-            onClick={() => router.push(`/locations?loc=${l.id}`)}
+            onClick={() => router.push(`/locations/${l.id}`)}
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
               selected === l.id ? "bg-maroon-900 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50"
             }`}

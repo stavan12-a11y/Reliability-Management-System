@@ -3,9 +3,8 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, ChevronRight, Plus } from "lucide-react";
-import { EmptyState, ExportButton, SortableHeader, StatusBadge, CriticalityBadge, downloadCsv } from "@/components/ui";
+import { EmptyState, ExportButton, StatusBadge, CriticalityBadge, downloadCsv } from "@/components/ui";
 import { AddEquipmentModal } from "@/components/add-equipment-modal";
-import { useSort } from "@/lib/hooks/useSort";
 import { criticalityTier } from "@/lib/theme";
 import type { getEquipmentList } from "@/lib/data/equipment";
 
@@ -33,7 +32,6 @@ export function EquipmentContent({
   const [statusFilter, setStatusFilter] = useState("All");
   const [query, setQuery] = useState("");
   const [showAdd, setShowAdd] = useState(false);
-  const { sortKey, sortDir, toggleSort, sortRows } = useSort<Equipment>(null);
 
   const classes = ["All", ...Array.from(new Set(equipment.map((e) => e.class)))];
 
@@ -44,18 +42,11 @@ export function EquipmentContent({
     return true;
   });
 
-  const accessor = (row: Equipment, key: string) => {
-    if (key === "criticality") return row.critScore;
-    if (key === "status") return row.status;
-    return null;
-  };
-  const sortedFiltered = sortRows(filtered, accessor);
-
   // By location: group by location, then sub-group by class so pumps sit
   // with pumps, boilers with boilers, within each plant.
   const byLocation = useMemo(() => {
     const map = new Map<string, Map<string, Equipment[]>>();
-    sortedFiltered.forEach((e) => {
+    filtered.forEach((e) => {
       const locKey = e.location.name;
       if (!map.has(locKey)) map.set(locKey, new Map());
       const classMap = map.get(locKey)!;
@@ -63,23 +54,23 @@ export function EquipmentContent({
       classMap.get(e.class)!.push(e);
     });
     return map;
-  }, [sortedFiltered]);
+  }, [filtered]);
 
   // By class: flat within each class, but show location per row since the
   // grouping no longer implies it.
   const byClass = useMemo(() => {
     const map = new Map<string, Equipment[]>();
-    sortedFiltered.forEach((e) => {
+    filtered.forEach((e) => {
       if (!map.has(e.class)) map.set(e.class, []);
       map.get(e.class)!.push(e);
     });
     return map;
-  }, [sortedFiltered]);
+  }, [filtered]);
 
   function exportCsv() {
     downloadCsv(
       "equipment-register.csv",
-      sortedFiltered as unknown as Record<string, unknown>[],
+      filtered as unknown as Record<string, unknown>[],
       [
         { label: "Asset ID", value: (r) => (r as Equipment).id },
         { label: "Class", value: (r) => (r as Equipment).class },
@@ -152,7 +143,7 @@ export function EquipmentContent({
         <ExportButton onClick={exportCsv} label="Export" />
       </div>
 
-      {sortedFiltered.length === 0 ? (
+      {filtered.length === 0 ? (
         <EmptyState icon={Search} title="No matching equipment" detail="Try a different search term or clear a filter." />
       ) : viewBy === "location" ? (
         Array.from(byLocation.entries()).map(([locName, classMap]) => (
@@ -163,8 +154,8 @@ export function EquipmentContent({
                 <div className={`grid gap-2.5 px-3.5 py-1.5 text-[11px] font-semibold text-slate-400 ${ROW_COLS_BY_LOCATION}`}>
                   <span>{className}</span>
                   <span></span>
-                  <SortableHeader label="Crit." sortKey="criticality" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
-                  <SortableHeader label="Status" sortKey="status" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
+                  <span>Criticality</span>
+                  <span>Status</span>
                   <span></span>
                 </div>
                 <div className="divide-y divide-slate-100">
@@ -184,8 +175,8 @@ export function EquipmentContent({
               <span>Asset</span>
               <span>Location</span>
               <span></span>
-              <SortableHeader label="Crit." sortKey="criticality" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
-              <SortableHeader label="Status" sortKey="status" activeKey={sortKey} dir={sortDir} onClick={toggleSort} />
+              <span>Criticality</span>
+              <span>Status</span>
               <span></span>
             </div>
             <div className="divide-y divide-slate-100">
