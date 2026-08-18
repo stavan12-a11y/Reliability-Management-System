@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { ArrowLeft, MapPin, Percent, ShieldAlert, Clock } from "lucide-react";
-import { KpiCard, KpiGrid, SectionHeader, StatusBadge } from "@/components/ui";
+import { ArrowLeft, MapPin, Percent, ShieldAlert, Clock, ChevronRight, CheckCircle2 } from "lucide-react";
+import { KpiCard, KpiGrid, SectionHeader, StatusBadge, CriticalityBadge, EmptyState } from "@/components/ui";
+import { criticalityTier } from "@/lib/theme";
 import { systemIcon } from "@/lib/system-icons";
 import type { getLocations, getSystemsByLocation } from "@/lib/data/locations";
 import type { getEquipmentByLocation } from "@/lib/data/equipment";
@@ -18,12 +19,6 @@ function availabilityAccent(pct: number) {
   if (pct >= 90) return { accent: "text-amber-600", iconBg: "bg-amber-50" };
   return { accent: "text-red-600", iconBg: "bg-red-50" };
 }
-
-const EQUIPMENT_STATUS_CLASSES = {
-  available: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
-  limited: "bg-amber-50 text-amber-700 ring-amber-600/20",
-  unavailable: "bg-red-50 text-red-700 ring-red-600/20",
-} as const;
 
 export function LocationsContent({
   locations,
@@ -76,57 +71,65 @@ export function LocationsContent({
         <KpiCard label="Limited" value={counts.limited} icon={ShieldAlert} accent={counts.limited > 0 ? "text-amber-600" : "text-emerald-600"} iconBg={counts.limited > 0 ? "bg-amber-50" : "bg-emerald-50"} />
       </KpiGrid>
 
-      <div>
-        <SectionHeader title="Active issues at this location" />
-        {issues.length === 0 ? (
-          <p className="text-sm text-slate-500">No active issues at this location.</p>
-        ) : (
-          <div className="card divide-y divide-slate-100">
-            {issues.map((issue) => (
-              <div key={issue.id} onClick={() => router.push(`/equipment/${issue.assetId}`)} className="flex cursor-pointer items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50">
-                <div className="min-w-0 flex-1">
-                  <div className="mb-0.5 flex items-center gap-2">
-                    <span className="font-mono text-sm font-semibold text-slate-900">{issue.assetId}</span>
-                    {issue.overdue && <span className="text-[10px] font-bold tracking-wide text-red-600">OVERDUE</span>}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
+        <div>
+          <SectionHeader title="Systems" />
+          <div className="space-y-3">
+            {systems.map((sys) => {
+              const sysEq = equipment.filter((e) => e.systemId === sys.id);
+              const Icon = systemIcon(sys.icon);
+              return (
+                <div key={sys.id} className="card overflow-hidden">
+                  <div className="flex items-center gap-2.5 border-b border-slate-100 bg-slate-50 px-3.5 py-2.5">
+                    <Icon className="h-4 w-4 text-maroon-700" />
+                    <p className="text-sm font-bold text-slate-900">{sys.name}</p>
+                    <span className="text-xs text-slate-400">
+                      {sysEq.length} asset{sysEq.length !== 1 ? "s" : ""}
+                    </span>
                   </div>
-                  <p className="truncate text-sm text-slate-600">{issue.description}</p>
+                  <div className="divide-y divide-slate-100">
+                    {sysEq.map((e) => (
+                      <div
+                        key={e.id}
+                        onClick={() => router.push(`/equipment/${e.id}`)}
+                        className="grid cursor-pointer grid-cols-[100px_100px_1fr_90px_110px_18px] items-center gap-2.5 px-3.5 py-2.5 hover:bg-slate-50"
+                      >
+                        <span className="font-mono text-sm font-semibold text-slate-900">{e.id}</span>
+                        <span className="truncate text-xs text-slate-500">{e.assetNumber}</span>
+                        <span className="truncate text-xs text-slate-400">
+                          {e.manufacturer} {e.model}
+                        </span>
+                        <CriticalityBadge tier={criticalityTier(e.critScore)} />
+                        <StatusBadge status={e.status} />
+                        <ChevronRight className="h-4 w-4 text-slate-300" />
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <StatusBadge status={issue.condition === "unavailable" ? "unavailable" : "limited"} />
-              </div>
-            ))}
+              );
+            })}
           </div>
-        )}
-      </div>
-
-      <div>
-        <SectionHeader title="Systems" />
-        <div className="space-y-3">
-          {systems.map((sys) => {
-            const sysEq = equipment.filter((e) => e.systemId === sys.id);
-            const Icon = systemIcon(sys.icon);
-            return (
-              <div key={sys.id} className="card p-4">
-                <div className="mb-3 flex items-center gap-2.5">
-                  <Icon className="h-4 w-4 text-maroon-700" />
-                  <p className="text-sm font-bold text-slate-900">{sys.name}</p>
-                  <span className="text-xs text-slate-400">{sysEq.length} assets</span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {sysEq.map((e) => (
-                    <button
-                      key={e.id}
-                      type="button"
-                      onClick={() => router.push(`/equipment/${e.id}`)}
-                      className={`rounded-md px-2.5 py-1 font-mono text-xs font-semibold ring-1 ring-inset ${EQUIPMENT_STATUS_CLASSES[e.status]}`}
-                    >
-                      {e.id}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
         </div>
+
+        <aside className="lg:sticky lg:top-20 lg:self-start">
+          <SectionHeader title="Active issues" subtitle="At this location" />
+          {issues.length === 0 ? (
+            <EmptyState icon={CheckCircle2} title="All equipment available" detail="No active issues at this location." />
+          ) : (
+            <div className="card divide-y divide-slate-100 overflow-y-auto" style={{ maxHeight: "calc(100vh - 180px)" }}>
+              {issues.map((issue) => (
+                <div key={issue.id} onClick={() => router.push(`/equipment/${issue.assetId}`)} className="cursor-pointer px-3.5 py-3 hover:bg-slate-50">
+                  <div className="mb-0.5 flex items-center justify-between gap-2">
+                    <span className="font-mono text-sm font-semibold text-slate-900">{issue.assetId}</span>
+                    <StatusBadge status={issue.condition === "unavailable" ? "unavailable" : "limited"} />
+                  </div>
+                  {issue.overdue && <span className="mb-0.5 inline-block text-[10px] font-bold tracking-wide text-red-600">OVERDUE</span>}
+                  <p className="truncate text-xs text-slate-500">{issue.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </aside>
       </div>
     </div>
   );

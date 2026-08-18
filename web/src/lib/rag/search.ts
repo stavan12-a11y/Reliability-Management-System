@@ -23,9 +23,33 @@ function toVectorLiteral(vec: number[]) {
 // `Unsupported("vector(768)")` field in schema.prisma). Enum/`name`-typed
 // columns are cast to ::text — the Neon driver adapter's raw-query
 // deserializer doesn't know how to map custom Postgres types otherwise.
-export async function searchHistory(question: string, opts: { assetId?: string; topN?: number } = {}): Promise<HistorySource[]> {
+//
+// Scope precedence: assetId (exact asset) > assetClass (e.g. all boilers,
+// optionally excluding one asset so a primary-asset search can be paired
+// with a "did any other boiler have this problem" secondary search) > no
+// filter (global, every asset). Pure vector similarity over the *global*
+// corpus was pulling in off-topic chiller/pump records when asked about a
+// boiler burner, because with only ~24 seed records the embeddings for
+// unrelated failures can still land in the topN by chance — scoping to the
+// right asset/class first, then ranking by similarity within that pool,
+// fixes that.
+export async function searchHistory(question: string, opts: { assetId?: string; assetClass?: string; excludeAssetId?: string; topN?: number } = {}): Promise<HistorySource[]> {
   const topN = opts.topN ?? 5;
   const vector = toVectorLiteral(await embedText(question));
+
+  const params: unknown[] = [vector, topN];
+  let filterClause = "";
+  if (opts.assetId) {
+    params.push(opts.assetId);
+    filterClause = `AND "assetId" = $${params.length}`;
+  } else if (opts.assetClass) {
+    params.push(opts.assetClass);
+    filterClause = `AND "assetId" IN (SELECT id FROM "Equipment" WHERE class = $${params.length})`;
+    if (opts.excludeAssetId) {
+      params.push(opts.excludeAssetId);
+      filterClause += ` AND "assetId" != $${params.length}`;
+    }
+  }
 
   const [historyRows, maintenanceRows] = await Promise.all([
     prisma.$queryRawUnsafe<
@@ -33,24 +57,20 @@ export async function searchHistory(question: string, opts: { assetId?: string; 
     >(
       `SELECT id, "assetId", description, "rootCause", "failureMode"::text as "failureMode", "component"::text as "component", "resolvedAt", "woNumber", 1 - (embedding <=> $1::vector) AS similarity
        FROM "IssueHistory"
-       WHERE embedding IS NOT NULL ${opts.assetId ? `AND "assetId" = $3` : ""}
+       WHERE embedding IS NOT NULL ${filterClause}
        ORDER BY embedding <=> $1::vector
        LIMIT $2`,
-      vector,
-      topN,
-      ...(opts.assetId ? [opts.assetId] : []),
+      ...params,
     ),
     prisma.$queryRawUnsafe<
       { id: string; assetId: string; description: string; failureMode: string | null; component: string | null; date: Date; woNumber: string | null; similarity: number }[]
     >(
       `SELECT id, "assetId", description, "failureMode"::text as "failureMode", "component"::text as "component", date, "woNumber", 1 - (embedding <=> $1::vector) AS similarity
        FROM "MaintenanceLog"
-       WHERE embedding IS NOT NULL ${opts.assetId ? `AND "assetId" = $3` : ""}
+       WHERE embedding IS NOT NULL ${filterClause}
        ORDER BY embedding <=> $1::vector
        LIMIT $2`,
-      vector,
-      topN,
-      ...(opts.assetId ? [opts.assetId] : []),
+      ...params,
     ),
   ]);
 
