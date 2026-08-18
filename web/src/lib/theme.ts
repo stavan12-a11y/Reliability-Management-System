@@ -12,7 +12,7 @@ export const statusMeta = {
 export type StatusKey = keyof typeof statusMeta;
 
 export function criticalityTier(score: number) {
-  if (score >= 17) return { label: "Critical", text: "text-red-700", bg: "bg-red-50", border: "border-red-200", dot: "bg-red-600" };
+  if (score >= 17) return { label: "Very High", text: "text-red-700", bg: "bg-red-50", border: "border-red-200", dot: "bg-red-600" };
   if (score >= 10) return { label: "High", text: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200", dot: "bg-orange-500" };
   if (score >= 5) return { label: "Medium", text: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200", dot: "bg-amber-500" };
   return { label: "Low", text: "text-slate-600", bg: "bg-slate-50", border: "border-slate-200", dot: "bg-slate-400" };

@@ -16,7 +16,7 @@ export function fleetKpis(equipmentList: KpiEquipment[], historyList: KpiHistory
   const totalDowntime = equipmentList.reduce((s, e) => s + e.downtimeDays90d, 0);
   const availabilityPct = totalDays > 0 ? Math.round(((totalDays - totalDowntime) / totalDays) * 1000) / 10 : 100;
 
-  const criticalAssets = equipmentList.filter((e) => criticalityTier(e.critScore).label === "Critical");
+  const criticalAssets = equipmentList.filter((e) => criticalityTier(e.critScore).label === "Very High");
   const criticalDays = criticalAssets.length * PERIOD_DAYS;
   const criticalDowntime = criticalAssets.reduce((s, e) => s + e.downtimeDays90d, 0);
   const criticalAvailabilityPct = criticalDays > 0 ? Math.round(((criticalDays - criticalDowntime) / criticalDays) * 1000) / 10 : 100;
