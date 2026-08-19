@@ -1,14 +1,15 @@
 import { getGemini, CHAT_MODEL } from "./client";
 import type { HistorySource } from "./search";
 
-export async function answerFromHistory(question: string, sources: HistorySource[]): Promise<string> {
-  if (sources.length === 0) {
-    return "No related history found.";
+export async function answerFromHistory(question: string, sources: HistorySource[], dashboardContext: string | null): Promise<string> {
+  if (sources.length === 0 && !dashboardContext) {
+    return "No related information found.";
   }
 
   const spansMultipleAssets = new Set(sources.map((s) => s.assetId)).size > 1;
   const ai = getGemini();
-  const context = sources
+
+  const historyBlock = sources
     .map((s, i) => {
       const label = s.kind === "issue_history" ? "Resolved issue" : "Maintenance record";
       return `[${i + 1}] ${label} — Asset ${s.assetId}, WO ${s.woNumber ?? "none on file"}, ${s.date.toISOString().slice(0, 10)}
@@ -18,19 +19,24 @@ Component: ${s.component ?? "not classified"}`;
     })
     .join("\n\n");
 
+  const sections = [
+    dashboardContext ? `CURRENT DASHBOARD DATA (live — KPIs, nameplate, status; not a historical record):\n${dashboardContext}` : null,
+    historyBlock ? `NUMBERED HISTORICAL RECORDS (past work orders):\n\n${historyBlock}` : null,
+  ].filter(Boolean);
+
   const citationInstruction = spansMultipleAssets
-    ? "Every factual claim must cite its source record's asset ID and WO number in parentheses, e.g. (CHLR003, WO-116200) — since these records span multiple assets, the asset ID is required so the reader knows which equipment each fact is about."
-    : "Every factual claim must cite its source record's WO number in parentheses, e.g. (WO-116200).";
+    ? "When citing a numbered historical record, include both the asset ID and WO number in parentheses, e.g. (CHLR003, WO-116200) — these records span multiple assets, so the asset ID is required so the reader knows which equipment each fact is about."
+    : "When citing a numbered historical record, include its WO number in parentheses, e.g. (WO-116200).";
 
   let res;
   try {
     res = await ai.models.generateContent({
       model: CHAT_MODEL,
-      contents: `Records:\n\n${context}\n\nQuestion: ${question}`,
+      contents: `${sections.join("\n\n")}\n\nQuestion: ${question}`,
       config: {
         temperature: 0.2,
         systemInstruction:
-          `You are a maintenance history assistant for a university utilities and energy services team. Answer the technician's question using ONLY the numbered records provided below — never use outside knowledge about the equipment. ${citationInstruction} If none of the provided records are actually relevant to the question, say so plainly instead of guessing or stretching a weak match.`,
+          `You are an assistant for a university utilities and energy services reliability dashboard. Answer the technician's question using ONLY the information provided below — never use outside knowledge about the equipment. There are two kinds of information, and they follow different citation rules: (1) "Current dashboard data" is live data straight from the system right now (KPIs like availability/MTTR/MTBF, nameplate specs, current status, criticality, active issues) — state these facts directly, no citation needed, since they aren't historical records. (2) "Numbered historical records" are past work orders — ${citationInstruction} If the question asks about something not covered by either section, say so plainly instead of guessing or stretching a weak match.`,
       },
     });
   } catch (e) {

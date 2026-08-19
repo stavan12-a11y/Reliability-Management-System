@@ -27,7 +27,7 @@ export function AiHistoryWidget() {
           <div className="flex items-center justify-between border-b border-slate-100 bg-maroon-800 px-4 py-3">
             <div className="flex items-center gap-2 text-white">
               <Sparkles className="h-4 w-4" />
-              <p className="text-sm font-semibold">AI maintenance history</p>
+              <p className="text-sm font-semibold">AI dashboard assistant</p>
             </div>
             <button type="button" onClick={() => setOpen(false)} className="text-white/80 hover:text-white">
               <X className="h-4 w-4" />
@@ -38,7 +38,7 @@ export function AiHistoryWidget() {
             {entries.length === 0 && (
               <div className="flex items-start gap-2.5 rounded-lg bg-slate-50 p-3 text-xs text-slate-500">
                 <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-maroon-600" />
-                Ask about failure patterns, past repairs, or recurring issues across any asset — e.g. &quot;Has CHLR003 had bearing problems before?&quot; Answers cite real work orders.
+                Ask about anything on the dashboard — current KPIs, nameplate specs, status, or past failure patterns and repairs. E.g. &quot;What&apos;s CHLR003&apos;s availability?&quot; or &quot;Has it had bearing problems before?&quot; Historical claims cite real work orders.
               </div>
             )}
             {entries.map((entry, i) => (
@@ -76,7 +76,7 @@ export function AiHistoryWidget() {
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAsk()}
-              placeholder="Ask about any asset's history…"
+              placeholder="Ask about any asset's KPIs, specs, or history…"
               className="input text-sm"
               disabled={pending}
               autoFocus
@@ -91,7 +91,7 @@ export function AiHistoryWidget() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        title="Ask AI about maintenance history"
+        title="Ask AI about equipment KPIs, specs, or history"
         className="flex h-14 w-14 items-center justify-center rounded-full bg-maroon-700 text-white shadow-xl transition hover:bg-maroon-800"
       >
         {open ? <X className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}

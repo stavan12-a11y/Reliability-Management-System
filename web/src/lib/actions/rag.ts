@@ -3,6 +3,7 @@
 import { getCurrentUser } from "@/lib/session";
 import { searchHistory, type HistorySource } from "@/lib/rag/search";
 import { resolveQuestionScope } from "@/lib/rag/scope";
+import { buildDashboardContext } from "@/lib/rag/context";
 import { answerFromHistory } from "@/lib/rag/chat";
 import { isRagConfigured } from "@/lib/rag/client";
 
@@ -46,7 +47,13 @@ export async function askHistory(question: string): Promise<AskHistoryResult> {
       sources = await searchHistory(question, { topN: 8 });
     }
 
-    const answer = await answerFromHistory(question, sources);
+    // Live KPIs/nameplate/status alongside the historical-record search —
+    // covers questions like "what's CHLR003's availability" or "what
+    // refrigerant does it use" that vector search over WO descriptions
+    // wouldn't naturally answer.
+    const dashboardContext = await buildDashboardContext(scope);
+
+    const answer = await answerFromHistory(question, sources, dashboardContext);
     return {
       answer,
       sources: sources.map((s) => ({ kind: s.kind, id: s.id, woNumber: s.woNumber, date: s.date.toISOString().slice(0, 10), description: s.description, assetId: s.assetId })),
